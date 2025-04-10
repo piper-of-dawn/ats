@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Python with Nodemon",
+            "type": "shell",
+            "command": "startnode && nodemon",
+            "args": [
+                "--exec",
+                "clear && python ${file}",
+                "--watch",
+                "${file}"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ],
+    "inputs": [],
+    "keybindings": [
+        {
+            "key": "ctrl+k alt+r", // Or cmd+shift+r on macOS
+            "command": "workbench.action.tasks.runTask",
+            "args": "Run Python with Nodemon"
+        }
+    ]
+}

@@ -5,7 +5,11 @@ from datetime import date, datetime, timedelta
 from pandas.tseries.offsets import BDay
 from collections import namedtuple
 from functools import lru_cache
-
+import pickle
+from multiprocessing import Pool
+from tqdm import tqdm
+import warnings
+warnings.filterwarnings("ignore")
 @lru_cache(maxsize=32)
 def fetch_stock_data(ticker, start_date=None, end_date=None, extract_col='Close'):
     """
@@ -23,21 +27,21 @@ def fetch_stock_data(ticker, start_date=None, end_date=None, extract_col='Close'
     StockData = namedtuple('StockData', ['date', 'close_price', 'returns'])
     
     # Set default values for dates
-    if start_date is None:
-        start_date = date.today()
-        
     if end_date is None:
+        end_date = date.today()
+        
+    if start_date is None:
         # Calculate 90 business days prior to today
-        end_date = (datetime.now() - BDay(90)).date()
+        start_date = (datetime.now() - BDay(90)).date()
     
     # Ensure start_date is after end_date for yfinance
-    if start_date < end_date:
-        temp = start_date
-        start_date = end_date
-        end_date = temp
+    # if start_date < end_date:
+    #     temp = start_date
+    #     start_date = end_date
+    #     end_date = temp
     
     # Download data from yfinance
-    data = yf.download(ticker, start=end_date, end=start_date, progress=False)
+    data = yf.download(ticker, start=start_date, end=end_date, progress=False)
     
     # Extract the close prices
     close_prices = data[extract_col][ticker]
@@ -59,12 +63,9 @@ def get_sp500_data():
     df = table[0]    
     return df
 
-import pickle
-from multiprocessing import Pool
-from tqdm import tqdm
 
-def get_ticker_data(ticker):
-    return ticker, fetch_stock_data(ticker)
+def get_ticker_data(ticker, start_date='2020-01-01', end_date=date.today()):
+    return ticker, fetch_stock_data(ticker, start_date, end_date)
 
 def parallelize_fetch(tickers, output_file='stock_data.pkl', read_cache=False):
     if read_cache:
