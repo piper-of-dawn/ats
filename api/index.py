@@ -94,10 +94,10 @@ def _fetch_rows(table_name: str):
             cols = [d[0] for d in cur.description]
     return cols, rows
 
-
+    
 @app.get("/")
 def dashboard() -> Response:
-    table = request.args.get("table", "us_midcap400")
+    table = request.args.get("table", "factor_metrics")
     try:
         columns, rows = _fetch_rows(table)
     except UndefinedTable:
