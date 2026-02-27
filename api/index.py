@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import psycopg
 from flask import Flask, Response, request
@@ -8,24 +9,70 @@ from psycopg.errors import UndefinedTable
 
 app = Flask(__name__)
 
+_ALLOWED_DSN_QUERY_KEYS = {
+    "application_name",
+    "channel_binding",
+    "client_encoding",
+    "connect_timeout",
+    "dbname",
+    "fallback_application_name",
+    "gssencmode",
+    "gsslib",
+    "host",
+    "hostaddr",
+    "keepalives",
+    "keepalives_count",
+    "keepalives_idle",
+    "keepalives_interval",
+    "krbsrvname",
+    "load_balance_hosts",
+    "options",
+    "passfile",
+    "password",
+    "port",
+    "replication",
+    "requirepeer",
+    "service",
+    "sslcert",
+    "sslcompression",
+    "sslcrl",
+    "sslcrldir",
+    "sslkey",
+    "sslmode",
+    "sslnegotiation",
+    "sslpassword",
+    "sslrootcert",
+    "sslsni",
+    "target_session_attrs",
+    "tcp_user_timeout",
+    "user",
+}
 
-def _dsn_from_env() -> str | None:
-    for key in (
-        "SUPABASE_DB_URL",
-        "DATABASE_URL",
-        "POSTGRES_URL",
-        "POSTGRES_URL_NON_POOLING",
-    ):
-        val = os.getenv(key)
-        if val:
-            return val
-    return None
+
+def _sanitize_postgres_dsn(dsn: str) -> str | None:
+    if not dsn:
+        return None
+    parts = urlsplit(dsn)
+    if parts.scheme not in {"postgres", "postgresql"}:
+        return None
+    safe_qs = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k in _ALLOWED_DSN_QUERY_KEYS
+    ]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(safe_qs, doseq=True), parts.fragment))
 
 
 def _connect():
-    dsn = _dsn_from_env()
-    if dsn:
-        return psycopg.connect(dsn, connect_timeout=10, prepare_threshold=None)
+    for key in ("SUPABASE_DB_URL", "DATABASE_URL", "POSTGRES_URL", "POSTGRES_URL_NON_POOLING"):
+        raw = os.getenv(key)
+        dsn = _sanitize_postgres_dsn(raw) if raw else None
+        if not dsn:
+            continue
+        try:
+            return psycopg.connect(dsn, connect_timeout=10, prepare_threshold=None)
+        except psycopg.ProgrammingError:
+            continue
 
     return psycopg.connect(
         host="aws-1-eu-north-1.pooler.supabase.com",
