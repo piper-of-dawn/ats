@@ -1,15 +1,76 @@
 import os
 from functools import lru_cache
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import polars as pl
 import psycopg
 from dotenv import load_dotenv
 from psycopg import sql
 
+_ALLOWED_DSN_QUERY_KEYS = {
+    "application_name",
+    "channel_binding",
+    "client_encoding",
+    "connect_timeout",
+    "dbname",
+    "fallback_application_name",
+    "gssencmode",
+    "gsslib",
+    "host",
+    "hostaddr",
+    "keepalives",
+    "keepalives_count",
+    "keepalives_idle",
+    "keepalives_interval",
+    "krbsrvname",
+    "load_balance_hosts",
+    "options",
+    "passfile",
+    "password",
+    "port",
+    "replication",
+    "requirepeer",
+    "service",
+    "sslcert",
+    "sslcompression",
+    "sslcrl",
+    "sslcrldir",
+    "sslkey",
+    "sslmode",
+    "sslnegotiation",
+    "sslpassword",
+    "sslrootcert",
+    "sslsni",
+    "target_session_attrs",
+    "tcp_user_timeout",
+    "user",
+}
+
+
+def _sanitize_postgres_dsn(dsn: str) -> str | None:
+    if not dsn:
+        return None
+    parts = urlsplit(dsn)
+    if parts.scheme not in {"postgres", "postgresql"}:
+        return None
+    safe_qs = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k in _ALLOWED_DSN_QUERY_KEYS
+    ]
+    return urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(safe_qs, doseq=True), parts.fragment)
+    )
+
 
 @lru_cache(maxsize=1)
 def _get_conn_params():
     load_dotenv()
+    for key in ("SUPABASE_DB_URL", "DATABASE_URL", "POSTGRES_URL", "POSTGRES_URL_NON_POOLING"):
+        raw = os.getenv(key)
+        dsn = _sanitize_postgres_dsn(raw) if raw else None
+        if dsn:
+            return dsn
     return dict(
         host="aws-1-eu-north-1.pooler.supabase.com",
         port=6543,
@@ -21,9 +82,15 @@ def _get_conn_params():
     )
 
 
+def _connect():
+    conn_info = _get_conn_params()
+    if isinstance(conn_info, str):
+        return psycopg.connect(conn_info, connect_timeout=10, prepare_threshold=None)
+    return psycopg.connect(**conn_info)
+
+
 def fetch_table(table_name: str) -> pl.DataFrame:
-    conn_params = _get_conn_params()
-    with psycopg.connect(**conn_params) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
             cur.execute(query)
@@ -33,7 +100,7 @@ def fetch_table(table_name: str) -> pl.DataFrame:
 
 
 def get_table_columns(table_name: str) -> list[str]:
-    with psycopg.connect(**_get_conn_params()) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -60,7 +127,7 @@ def get_date_column_name(table_name: str) -> str:
 
 def fetch_recent_dates(table_name: str, limit: int = 7) -> list[str]:
     date_column = get_date_column_name(table_name)
-    with psycopg.connect(**_get_conn_params()) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             query = sql.SQL(
                 """
@@ -99,7 +166,7 @@ def fetch_top_rows_for_date(
         query += sql.SQL(" order by {}").format(sql.SQL(", ").join(order_by))
     query += sql.SQL(" limit %s")
 
-    with psycopg.connect(**_get_conn_params()) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(query, (selected_date, limit))
             rows = cur.fetchall()
@@ -120,15 +187,14 @@ def batch_insert(table_name: str, columns: list[str], data: list[tuple]):
         sql.SQL(", ").join(sql.Identifier(col) for col in columns),
         sql.SQL(", ").join(sql.Placeholder() for _ in columns),
     )
-    conn_params = _get_conn_params()
-    with psycopg.connect(**conn_params) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             cur.executemany(query, data)
         conn.commit()
 
 
 def table_exists(table_name: str) -> bool:
-    with psycopg.connect(**_get_conn_params()) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -161,7 +227,7 @@ def create_relation(schema: str, table_name: str):
         sql.Identifier(table_name),
         sql.SQL(", ").join(columns)
     )
-    with psycopg.connect(**_get_conn_params()) as conn:
+    with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(query)
         conn.commit()
