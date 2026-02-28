@@ -1,7 +1,6 @@
 uv.lock
 pyproject.toml
 .python-version
-src/
 tests/
 notebooks/
 DATA/

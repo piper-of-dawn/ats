@@ -24,7 +24,7 @@ def build_jobs(table_name):
     return jobs
 
 
-def run_jobs(jobs, as_of_date=None):
+def run_jobs(jobs, table_name, as_of_date=None):
     if as_of_date is None:
         as_of_date = date.today()
 
@@ -43,9 +43,9 @@ def run_jobs(jobs, as_of_date=None):
 
     df = (
         pl.DataFrame(results)
-        .sort("ltm", descending=True)
-        .sort("stm", descending=True)
+        .with_columns(pl.col(col).round(2) for col in ["ltm", "stm", "beta"])
+        .sort(["ltm", "stm"], descending=True)
         .with_columns(pl.lit(as_of_date).alias("as_of_date"))
     )
-    batch_insert_polars_df(df=df, columns=df.columns, table_name="factor_metrics")
+    batch_insert_polars_df(df=df, columns=df.columns, table_name=f"{table_name}_metrics")
     return df

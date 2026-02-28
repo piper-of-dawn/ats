@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Supabase Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+</head>
+<body class="dashboard">
+  <div class="dashboard-grid">
+    <div class="dashboard-main">
+      {{ table_html|safe }}
+    </div>
+    <aside class="dashboard-side">
+      {{ secondary_table_html|safe }}
+    </aside>
+  </div>
+</body>
+</html>

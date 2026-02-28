@@ -1,0 +1,54 @@
+<div class="card panel">
+  <div class="meta">
+    <span>TABLE: {{ table_name }}</span>
+    <span>AS OF DATE: {{ as_of_date or "N/A" }} | ROWS: {{ rows|length }} | UPDATED: {{ updated_at }}</span>
+  </div>
+  <div class="table-wrap desktop-table">
+    <table>
+      <thead>
+        <tr>
+          {% for col in columns %}
+          <th>{{ col.replace("_", " ").upper() }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for col in columns %}
+          <td class="{% if 'status' in col.lower() %}status{% endif %}">{{ row.get(col, "") if row.get(col, "") is not none else "" }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mobile-table">
+    {% for row in rows %}
+    <details class="mobile-row">
+      <summary class="mobile-row-summary">
+        {% for col in mobile_primary_columns %}
+        <div class="mobile-cell">
+          <span class="mobile-cell-label">{{ col.replace("_", " ").upper() }}</span>
+          <span class="mobile-cell-value {% if 'status' in col.lower() %}status{% endif %}">
+            {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+          </span>
+        </div>
+        {% endfor %}
+      </summary>
+      {% if mobile_detail_columns %}
+      <div class="mobile-row-details">
+        {% for col in mobile_detail_columns %}
+        <div class="mobile-detail-item">
+          <span class="mobile-detail-label">{{ col.replace("_", " ").upper() }}</span>
+          <span class="mobile-detail-value {% if 'status' in col.lower() %}status{% endif %}">
+            {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </details>
+    {% endfor %}
+  </div>
+</div>

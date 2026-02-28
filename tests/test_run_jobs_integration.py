@@ -5,32 +5,36 @@ import psycopg
 import pytest
 from dotenv import load_dotenv
 
+TARGET_TABLE = "test_table_metrics"
+SOURCE_TABLE = "us_midcap"
+RUN_DATE = date(2099, 1, 1)
 
-def _count_rows(conn, tickers, as_of_date):
+
+def _count_rows(conn, tickers):
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT COUNT(*)
-            FROM factor_metrics
+            FROM {TARGET_TABLE}
             WHERE ticker = ANY(%s) AND as_of_date = %s
             """,
-            (tickers, as_of_date),
+            (tickers, RUN_DATE),
         )
         return cur.fetchone()[0]
 
 
-def _delete_rows(conn, tickers, as_of_date):
+def _delete_rows(conn, tickers):
     with conn.cursor() as cur:
         cur.execute(
-            """
-            DELETE FROM factor_metrics
+            f"""
+            DELETE FROM {TARGET_TABLE}
             WHERE ticker = ANY(%s) AND as_of_date = %s
             """,
-            (tickers, as_of_date),
+            (tickers, RUN_DATE),
         )
 
 
-def test_run_jobs_writes_and_cleans_first_10_us_midcap_rows():
+def test_run_jobs_writes_to_test_table_metrics_from_us_midcap():
     load_dotenv()
     if not os.getenv("SUPABASE_PASSWORD"):
         pytest.skip("SUPABASE_PASSWORD is required for this integration test")
@@ -43,28 +47,23 @@ def test_run_jobs_writes_and_cleans_first_10_us_midcap_rows():
             pytest.skip("yfinance is required to execute run_jobs integration test")
         raise
 
-    source_table = "us_midcap"
-    if not table_exists(source_table):
-        source_table = "us_midcap400"
-    if not table_exists(source_table):
-        pytest.skip("Neither us_midcap nor us_midcap400 table is available")
-    if not table_exists("factor_metrics"):
-        pytest.skip("Supabase table factor_metrics is not available")
+    if not table_exists(SOURCE_TABLE):
+        pytest.skip(f"Supabase table {SOURCE_TABLE} is not available")
+    if not table_exists(TARGET_TABLE):
+        pytest.skip(f"Supabase table {TARGET_TABLE} is not available")
 
-    jobs = build_jobs(source_table)[:10]
+    jobs = build_jobs(SOURCE_TABLE)[:10]
     assert len(jobs) == 10
     tickers = [job["ticker"] for job in jobs]
-    run_date = date(2099, 1, 1)
 
     conn_params = _get_conn_params()
     with psycopg.connect(**conn_params) as conn:
-        before = _count_rows(conn, tickers, run_date)
+        before = _count_rows(conn, tickers)
         try:
-            run_jobs(jobs, as_of_date=run_date)
-            after = _count_rows(conn, tickers, run_date)
+            run_jobs(jobs, table_name="test_table", as_of_date=RUN_DATE)
+            after = _count_rows(conn, tickers)
             assert after >= before + len(jobs)
         finally:
-            _delete_rows(conn, tickers, run_date)
+            _delete_rows(conn, tickers)
             conn.commit()
-            cleaned = _count_rows(conn, tickers, run_date)
-            assert cleaned == 0
+            assert _count_rows(conn, tickers) == 0

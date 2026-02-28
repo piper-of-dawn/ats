@@ -1,4 +1,5 @@
 import argparse
+from datetime import date
 
 from ats.jobs import build_jobs, run_jobs
 
@@ -17,6 +18,7 @@ def parse_args():
 def main():
     args = parse_args()
     jobs = build_jobs(args.table_name)
+    as_of_date = date.today()
     if not jobs:
         print(
             f"No valid rows found in table '{args.table_name}'. Required columns: "
@@ -24,4 +26,4 @@ def main():
         )
         return
 
-    run_jobs(jobs)
+    run_jobs(jobs, table_name=args.table_name, as_of_date=as_of_date)
