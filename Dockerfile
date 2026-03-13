@@ -6,13 +6,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY dist/*.whl /tmp/ats.whl
+COPY dist/*.whl /tmp/dist/
 COPY docker/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends cron libpq5 \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir /tmp/ats.whl \
+    && pip install --no-cache-dir /tmp/dist/*.whl \
     && chmod +x /usr/local/bin/cron-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/cron-entrypoint.sh"]
