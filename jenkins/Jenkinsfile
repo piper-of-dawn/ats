@@ -10,10 +10,7 @@ pipeline {
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run pytest before building the image.')
         booleanParam(name: 'DEPLOY_ENABLED', defaultValue: true, description: 'Deploy after a successful build on the deploy branch.')
         string(name: 'DEPLOY_BRANCH', defaultValue: 'main', description: 'Branch allowed to update the target machine.')
-        string(name: 'IMAGE_REPOSITORY', defaultValue: 'registry.example.com/ats/ats', description: 'Fully-qualified registry repository, without the tag.')
-        string(name: 'REGISTRY_CREDENTIALS_ID', defaultValue: 'docker-registry', description: 'Jenkins username/password credentials for the container registry.')
-        string(name: 'DEPLOY_SSH_CREDENTIALS_ID', defaultValue: 'ats-deploy-ssh', description: 'Jenkins SSH private key credentials for the target machine.')
-        string(name: 'DEPLOY_TARGET', defaultValue: 'deploy@example.com', description: 'SSH target in user@host format.')
+        string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
         string(name: 'DEPLOY_PATH', defaultValue: '/opt/ats', description: 'Directory on the target machine that holds the compose stack.')
         string(name: 'DEPLOY_APP_ENV_FILE', defaultValue: '/opt/ats/app.env', description: 'App env file on the target machine, passed to docker compose.')
         string(name: 'DEPLOY_CONTAINER_NAME', defaultValue: 'ats', description: 'Container name used by docker compose.')
@@ -32,9 +29,9 @@ pipeline {
                     env.BRANCH_SAFE = (env.BRANCH_NAME ?: 'detached')
                         .replaceAll(/[^A-Za-z0-9_.-]+/, '-')
                         .toLowerCase()
-                    env.IMAGE_REF_SHA = "${params.IMAGE_REPOSITORY}:${env.SHORT_SHA}"
-                    env.IMAGE_REF_BRANCH = "${params.IMAGE_REPOSITORY}:branch-${env.BRANCH_SAFE}"
-                    env.IMAGE_REF_LATEST = "${params.IMAGE_REPOSITORY}:latest"
+                    env.IMAGE_REF_SHA = "${params.IMAGE_NAME}:${env.SHORT_SHA}"
+                    env.IMAGE_REF_BRANCH = "${params.IMAGE_NAME}:branch-${env.BRANCH_SAFE}"
+                    env.IMAGE_REF_LATEST = "${params.IMAGE_NAME}:latest"
                 }
             }
         }
@@ -81,35 +78,6 @@ pipeline {
             }
         }
 
-        stage('Push Image') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: params.REGISTRY_CREDENTIALS_ID,
-                        usernameVariable: 'REGISTRY_USERNAME',
-                        passwordVariable: 'REGISTRY_PASSWORD'
-                    )
-                ]) {
-                    sh '''
-                        set -euo pipefail
-                        registry_host="${IMAGE_REPOSITORY%%/*}"
-                        echo "${REGISTRY_PASSWORD}" | docker login "${registry_host}" \
-                          --username "${REGISTRY_USERNAME}" \
-                          --password-stdin
-
-                        docker push "${IMAGE_REF_SHA}"
-                        docker push "${IMAGE_REF_BRANCH}"
-
-                        if [ "${BRANCH_NAME}" = "${DEPLOY_BRANCH}" ]; then
-                          docker push "${IMAGE_REF_LATEST}"
-                        fi
-
-                        docker logout "${registry_host}"
-                    '''
-                }
-            }
-        }
-
         stage('Deploy') {
             when {
                 allOf {
@@ -118,51 +86,22 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: params.REGISTRY_CREDENTIALS_ID,
-                        usernameVariable: 'REGISTRY_USERNAME',
-                        passwordVariable: 'REGISTRY_PASSWORD'
-                    )
-                ]) {
-                    sshagent(credentials: [params.DEPLOY_SSH_CREDENTIALS_ID]) {
-                        sh '''
-                            set -euo pipefail
-                            registry_host="${IMAGE_REPOSITORY%%/*}"
-                            tmp_env="$(mktemp)"
+                sh '''
+                    set -euo pipefail
+                    mkdir -p "${DEPLOY_PATH}"
 
-                            cat > "${tmp_env}" <<EOF
+                    cat > "${DEPLOY_PATH}/deploy.env" <<EOF
 IMAGE_REF=${IMAGE_REF_LATEST}
 CONTAINER_NAME=${DEPLOY_CONTAINER_NAME}
 ATS_COMMANDS=${DEPLOY_COMMANDS}
 APP_ENV_FILE=${DEPLOY_APP_ENV_FILE}
 EOF
 
-                            ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_TARGET}" \
-                              "mkdir -p '${DEPLOY_PATH}'"
+                    cp jenkins/docker-compose.yml "${DEPLOY_PATH}/docker-compose.yml"
 
-                            scp -o StrictHostKeyChecking=accept-new \
-                              jenkins/docker-compose.yml \
-                              "${DEPLOY_TARGET}:${DEPLOY_PATH}/docker-compose.yml"
-
-                            scp -o StrictHostKeyChecking=accept-new \
-                              "${tmp_env}" \
-                              "${DEPLOY_TARGET}:${DEPLOY_PATH}/deploy.env"
-
-                            rm -f "${tmp_env}"
-
-                            echo "${REGISTRY_PASSWORD}" | ssh -o StrictHostKeyChecking=accept-new \
-                              "${DEPLOY_TARGET}" \
-                              "docker login '${registry_host}' --username '${REGISTRY_USERNAME}' --password-stdin"
-
-                            ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_TARGET}" "
-                              cd '${DEPLOY_PATH}' &&
-                              docker compose --env-file deploy.env pull &&
-                              docker compose --env-file deploy.env up -d
-                            "
-                        '''
-                    }
-                }
+                    cd "${DEPLOY_PATH}"
+                    docker compose --env-file deploy.env up -d
+                '''
             }
         }
     }
