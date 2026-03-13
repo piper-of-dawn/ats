@@ -17,7 +17,7 @@ pipeline {
         string(name: 'DEPLOY_PATH', defaultValue: '/opt/ats', description: 'Directory on the target machine that holds the compose stack.')
         string(name: 'DEPLOY_APP_ENV_FILE', defaultValue: '/opt/ats/app.env', description: 'App env file on the target machine, passed to docker compose.')
         string(name: 'DEPLOY_CONTAINER_NAME', defaultValue: 'ats', description: 'Container name used by docker compose.')
-        string(name: 'DEPLOY_COMMAND', defaultValue: 'us_midcap', description: 'Command passed to the ats container entrypoint.')
+        string(name: 'DEPLOY_COMMANDS', defaultValue: 'us_midcap', description: 'Comma-separated table names run daily by the scheduler container.')
     }
 
     stages {
@@ -134,7 +134,7 @@ pipeline {
                             cat > "${tmp_env}" <<EOF
 IMAGE_REF=${IMAGE_REF_LATEST}
 CONTAINER_NAME=${DEPLOY_CONTAINER_NAME}
-ATS_COMMAND=${DEPLOY_COMMAND}
+ATS_COMMANDS=${DEPLOY_COMMANDS}
 APP_ENV_FILE=${DEPLOY_APP_ENV_FILE}
 EOF
 

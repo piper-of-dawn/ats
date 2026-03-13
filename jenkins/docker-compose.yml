@@ -5,4 +5,5 @@ services:
     restart: unless-stopped
     env_file:
       - ${APP_ENV_FILE:-/opt/ats/app.env}
-    command: ${ATS_COMMAND:?ATS_COMMAND is required}
+    environment:
+      ATS_COMMANDS: ${ATS_COMMANDS:?ATS_COMMANDS is required}
