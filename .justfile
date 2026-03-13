@@ -1,2 +1,2 @@
 build:
-    uv pip install -e .
+    uv build --wheel

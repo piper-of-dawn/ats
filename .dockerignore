@@ -1,0 +1,13 @@
+.git
+.gitignore
+.pytest_cache
+.venv
+__pycache__
+*.pyc
+DATA/
+notebooks/
+jenkins/
+tests/
+dashboard/
+api/
+uv.lock

@@ -1,0 +1,8 @@
+services:
+  ats:
+    image: ${IMAGE_REF:?IMAGE_REF is required}
+    container_name: ${CONTAINER_NAME:-ats}
+    restart: unless-stopped
+    env_file:
+      - ${APP_ENV_FILE:-/opt/ats/app.env}
+    command: ${ATS_COMMAND:?ATS_COMMAND is required}
