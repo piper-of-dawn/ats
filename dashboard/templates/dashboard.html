@@ -8,12 +8,79 @@
 </head>
 <body class="dashboard">
   <div class="dashboard-grid">
-    <div class="dashboard-main">
-      {{ table_html|safe }}
-    </div>
+    <main class="dashboard-main">
+      <section class="card shell-card shell-card-primary">
+        <div class="shell-header">
+          <span>PRIMARY PANEL</span>
+          <span>Loading first</span>
+        </div>
+        <div id="primary-panel" class="panel-slot" data-partial-url="/partials/us_midcap_metrics">
+          <div class="panel-skeleton" aria-hidden="true">
+            <div class="skeleton-row skeleton-row-title"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+      </section>
+    </main>
     <aside class="dashboard-side">
-      {{ secondary_table_html|safe }}
+      <section class="card shell-card shell-card-secondary">
+        <div class="shell-header">
+          <span>SECONDARY PANEL</span>
+          <span>Deferred</span>
+        </div>
+        <div id="secondary-panel" class="panel-slot" data-partial-url="/partials/us_largecap_metrics">
+          <div class="panel-skeleton" aria-hidden="true">
+            <div class="skeleton-row skeleton-row-title"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+      </section>
     </aside>
   </div>
+  <script>
+    const panelStates = new Map();
+
+    async function loadPanel(panelId) {
+      const panel = document.getElementById(panelId);
+      if (!panel) {
+        return;
+      }
+      const url = panel.dataset.partialUrl;
+      if (!url || panelStates.get(panelId) === "loaded" || panelStates.get(panelId) === "loading") {
+        return;
+      }
+
+      panelStates.set(panelId, "loading");
+
+      try {
+        const response = await fetch(url, {
+          headers: { "X-Requested-With": "fetch" },
+          credentials: "same-origin",
+        });
+        panel.innerHTML = await response.text();
+      } catch (error) {
+        panel.innerHTML = '<div class="card load-error"><p>Unable to load panel content.</p></div>';
+      } finally {
+        panelStates.set(panelId, "loaded");
+      }
+    }
+
+    function deferSecondaryPanel() {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(() => loadPanel("secondary-panel"), { timeout: 2000 });
+        return;
+      }
+      window.setTimeout(() => loadPanel("secondary-panel"), 400);
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      await loadPanel("primary-panel");
+      deferSecondaryPanel();
+    }, { once: true });
+  </script>
 </body>
 </html>

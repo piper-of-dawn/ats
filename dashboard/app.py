@@ -19,17 +19,16 @@ def create_app() -> Flask:
             return render_template("table_not_found.html", table_name=table_name), 404
         return render_template("table.html", **context), 200
 
+    @app.get("/partials/<table_name>")
+    def table_partial(table_name: str) -> Response:
+        table_html, status = render_table(table_name)
+        return Response(table_html, status=status, mimetype="text/html")
+
     @app.get("/")
     def dashboard() -> Response:
-        factor_table_html, factor_status = render_table("us_midcap_metrics")
-        largecap_table_html, largecap_status = render_table("us_largecap_metrics")
         return Response(
-            render_template(
-                "dashboard.html",
-                table_html=factor_table_html,
-                secondary_table_html=largecap_table_html,
-            ),
-            status=max(factor_status, largecap_status),
+            render_template("dashboard.html"),
+            status=200,
             mimetype="text/html",
         )
 
