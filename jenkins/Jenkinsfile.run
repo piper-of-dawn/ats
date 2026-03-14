@@ -9,7 +9,7 @@ pipeline {
     triggers {
         cron('TZ=Europe/Berlin\n0 8 * * *')
     }
-
+z
     parameters {
         string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
         string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run.')
