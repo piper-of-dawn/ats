@@ -1,3 +1,7 @@
+def rebuildRequired = false
+def currentCommit = ''
+def lastBuiltCommit = ''
+
 pipeline {
     agent any
 
@@ -13,12 +17,6 @@ pipeline {
         string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
         string(name: 'BUILD_STATE_DIR', defaultValue: '/var/lib/jenkins/ats-build', description: 'Directory used to persist the last successfully built commit SHA.')
         booleanParam(name: 'PRUNE_IMAGES', defaultValue: true, description: 'Prune dangling Docker images and build cache after a successful rebuild.')
-    }
-
-    environment {
-        REBUILD_REQUIRED = 'false'
-        CURRENT_COMMIT = ''
-        LAST_BUILT_COMMIT = ''
     }
 
     stages {
@@ -43,21 +41,20 @@ pipeline {
             }
             steps {
                 script {
-                    env.CURRENT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                    currentCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                     sh 'mkdir -p "${BUILD_STATE_DIR}"'
                     def stampFile = "${params.BUILD_STATE_DIR}/${params.IMAGE_NAME}.last_built_commit"
-                    env.LAST_BUILT_COMMIT = sh(
+                    lastBuiltCommit = sh(
                         script: "[ -f '${stampFile}' ] && cat '${stampFile}' || true",
                         returnStdout: true,
                     ).trim()
 
-                    def rebuildRequired = params.FORCE_REBUILD || !env.LAST_BUILT_COMMIT || env.CURRENT_COMMIT != env.LAST_BUILT_COMMIT
-                    env.REBUILD_REQUIRED = rebuildRequired ? 'true' : 'false'
+                    rebuildRequired = params.FORCE_REBUILD || !lastBuiltCommit || currentCommit != lastBuiltCommit
 
                     if (rebuildRequired) {
-                        echo "Rebuild required for commit ${env.CURRENT_COMMIT} (previous built commit: ${env.LAST_BUILT_COMMIT ?: 'none'})."
+                        echo "Rebuild required for commit ${currentCommit} (previous built commit: ${lastBuiltCommit ?: 'none'})."
                     } else {
-                        echo "Skipping rebuild because commit ${env.CURRENT_COMMIT} is already built."
+                        echo "Skipping rebuild because commit ${currentCommit} is already built."
                     }
                 }
             }
@@ -67,7 +64,7 @@ pipeline {
             when {
                 allOf {
                     expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
-                    expression { return env.REBUILD_REQUIRED == 'true' }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
@@ -82,7 +79,7 @@ pipeline {
                 allOf {
                     expression { return params.RUN_TESTS }
                     expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
-                    expression { return env.REBUILD_REQUIRED == 'true' }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
@@ -94,7 +91,7 @@ pipeline {
             when {
                 allOf {
                     expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
-                    expression { return env.REBUILD_REQUIRED == 'true' }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
@@ -109,14 +106,14 @@ pipeline {
             when {
                 allOf {
                     expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
-                    expression { return env.REBUILD_REQUIRED == 'true' }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
                 sh '''
                     set -euo pipefail
                     mkdir -p "${BUILD_STATE_DIR}"
-                    printf '%s\n' "${CURRENT_COMMIT}" > "${BUILD_STATE_DIR}/${IMAGE_NAME}.last_built_commit"
+                    printf '%s\n' "${GIT_COMMIT}" > "${BUILD_STATE_DIR}/${IMAGE_NAME}.last_built_commit"
                 '''
             }
         }
@@ -126,7 +123,7 @@ pipeline {
                 allOf {
                     expression { return params.PRUNE_IMAGES }
                     expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
-                    expression { return env.REBUILD_REQUIRED == 'true' }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
@@ -144,8 +141,8 @@ pipeline {
             script {
                 if (env.BRANCH_NAME != params.BUILD_BRANCH) {
                     echo "Build job is idle because branch ${env.BRANCH_NAME} is not ${params.BUILD_BRANCH}."
-                } else if (env.REBUILD_REQUIRED == 'true') {
-                    echo "Built ${params.IMAGE_NAME}:latest from commit ${env.CURRENT_COMMIT}."
+                } else if (rebuildRequired) {
+                    echo "Built ${params.IMAGE_NAME}:latest from commit ${currentCommit}."
                 } else {
                     echo "No new commit on ${params.BUILD_BRANCH}; image rebuild skipped."
                 }
