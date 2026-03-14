@@ -1,0 +1,58 @@
+<section class="card nav-card">
+  <div class="nav-card-header">
+    <div>
+      <div class="nav-card-title">Fund NAV</div>
+      <div class="nav-card-subtitle">Daily fund NAV history</div>
+    </div>
+  </div>
+  <div class="nav-card-quote-strip">
+    <div class="nav-card-quote nav-card-quote-primary">
+      <div class="nav-card-price">{{ nav_context.latest_nav }}</div>
+      <div class="nav-card-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
+        {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
+      </div>
+      <div class="nav-card-stamp">As of {{ nav_context.latest_date }}</div>
+    </div>
+    <div class="nav-card-quote nav-card-quote-secondary">
+      <div class="nav-card-price">{{ nav_context.previous_nav }}</div>
+      <div class="nav-card-change negative">
+        Reference {{ nav_context.reference_nav }}
+      </div>
+      <div class="nav-card-stamp">Previous close {{ nav_context.previous_date }}</div>
+    </div>
+  </div>
+  <div class="nav-card-toolbar">
+    <div class="nav-range-picker">
+      <button type="button" id="nav-range-button" class="nav-range-button" aria-haspopup="true" aria-expanded="false">
+        <span id="nav-range-label">YTD</span>
+        <span class="nav-range-caret">⌄</span>
+      </button>
+      <div id="nav-range-menu" class="nav-range-menu" hidden>
+        <button type="button" data-range="1D">1D</button>
+        <button type="button" data-range="5D">5D</button>
+        <button type="button" data-range="1M">1M</button>
+        <button type="button" data-range="6M">6M</button>
+        <button type="button" data-range="YTD">YTD</button>
+        <button type="button" data-range="1Y">1Y</button>
+        <button type="button" data-range="5Y">5Y</button>
+        <button type="button" data-range="MAX">MAX</button>
+      </div>
+    </div>
+  </div>
+  <div class="nav-chart-wrap">
+    <canvas
+      id="nav-chart"
+      data-points='{{ nav_context.chart_points|tojson }}'
+    ></canvas>
+  </div>
+  <div class="nav-stats">
+    <div class="nav-stat">
+      <span class="nav-stat-label">Max Drawdown</span>
+      <span id="nav-max-drawdown" class="nav-stat-value negative">{{ nav_context.max_drawdown }}</span>
+    </div>
+    <div class="nav-stat">
+      <span class="nav-stat-label">Max Upside</span>
+      <span id="nav-max-upside" class="nav-stat-value positive">{{ nav_context.max_upside }}</span>
+    </div>
+  </div>
+</section>

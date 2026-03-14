@@ -38,20 +38,23 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 
 ## CI/CD Architecture
 - CI/CD is Jenkins-only. GitHub Actions and GitHub webhooks are not part of the active deployment path.
-- Jenkins uses a multibranch pipeline with script path `jenkins/Jenkinsfile`.
+- Jenkins uses two pipeline jobs stored in repo:
+  - `jenkins/Jenkinsfile`: multibranch build pipeline for `main`.
+  - `jenkins/Jenkinsfile.run`: scheduled pipeline that runs the already-built Docker image.
 - Jenkins should be configured to discover only `main`, with periodic scans instead of webhook triggers.
-- On `main`, Jenkins builds the wheel with `just build`, optionally runs `uv run pytest -q`, then builds the Docker image locally as `ats:latest`.
-- Deployment is local to the Jenkins machine. The pipeline writes `docker-compose.yml` and `deploy.env` into `DEPLOY_PATH` and runs `docker compose up -d`.
+- The build pipeline checks whether the current `main` commit differs from the last successfully built commit recorded on the Jenkins host. It rebuilds only when a new commit is present, unless `FORCE_REBUILD=true`.
+- On rebuild, Jenkins builds the wheel with `just build`, optionally runs `uv run pytest -q`, then builds the Docker image locally as `ats:latest`.
+- The scheduled run job is responsible for the daily execution of ATS commands at `08:00` in `Europe/Berlin` time, which covers CET/CEST automatically.
 - Docker registry push/pull is intentionally not used in the active setup.
-- After deployment, Jenkins can prune dangling images and builder cache to limit disk growth.
+- After a rebuild, Jenkins can prune dangling images and builder cache to limit disk growth.
 
 ## Docker/Scheduler Notes
 - The Docker image is built from the prebuilt wheel in `dist/`; it does not copy the source tree directly.
-- The container is a scheduler container, not a one-shot CLI container.
-- `docker/cron-entrypoint.sh` creates a cron job that runs daily at `08:00 UTC`.
-- Runtime command selection is passed through `ATS_COMMANDS`, a comma-separated list of table names. Each command is executed sequentially by the cron runner.
-- The image includes `cron` and `libpq5` so scheduled jobs can run `psycopg` successfully inside the container.
-- Host-side deploy metadata lives in `DEPLOY_PATH`, typically `/var/lib/jenkins/ats`. Keep only `docker-compose.yml`, `deploy.env`, and `app.env` there.
+- The image contains `/usr/local/bin/run-ats-commands.sh`, which runs each table listed in `ATS_COMMANDS` sequentially.
+- `docker/cron-entrypoint.sh` still supports the legacy in-container cron mode, but the active deployment path should prefer Jenkins scheduling via `jenkins/Jenkinsfile.run`.
+- The image includes `cron` and `libpq5` so both legacy cron mode and direct Jenkins-triggered runs can execute `psycopg` successfully inside the container.
+- Host-side Jenkins state for image rebuild detection should live in `BUILD_STATE_DIR`, typically `/var/lib/jenkins/ats-build`.
+- Runtime env files for the scheduled run job should live in a Jenkins-managed path such as `/var/lib/jenkins/ats/app.env`.
 
 ## Vercel Deployment Notes
 - Vercel config is in `vercel.json` and targets `api/index.py` with `@vercel/python`.
@@ -63,8 +66,8 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 - `SUPABASE_PASSWORD` used by `src/ats/dataIO/supabase_integration.py`.
 
 ### Jenkins/Docker deployment
-- `ATS_COMMANDS`: comma-separated table names run by the scheduler container, e.g. `us_midcap,us_smallcap`.
-- `SUPABASE_PASSWORD` and any DB connection env vars should be provided through the runtime app env file referenced by `DEPLOY_APP_ENV_FILE`.
+- `ATS_COMMANDS`: comma-separated table names run sequentially inside the container, e.g. `us_midcap,us_smallcap`.
+- `SUPABASE_PASSWORD` and any DB connection env vars should be provided through the runtime app env file passed to the scheduled Jenkins run job.
 
 ### Vercel dashboard (`api/index.py`)
 Connection priority:
@@ -84,7 +87,7 @@ Connection priority:
 - Vercel builds can accidentally pull backend lock/deps if `.vercelignore` is missing or incorrect.
 - Jenkins must have access to the local Docker daemon; the `jenkins` user needs permission to access `/var/run/docker.sock`.
 - Jenkins agents on Arch need `postgresql-libs` installed or `psycopg` imports will fail due to missing `libpq`.
-- `DEPLOY_PATH` must be writable by the `jenkins` user. `/var/lib/jenkins/ats` is the intended default; avoid root-owned deploy directories unless explicitly managed.
+- `BUILD_STATE_DIR` and any runtime env file path used by Jenkins must be writable/readable by the `jenkins` user.
 
 ## Conventions for Future Changes
 - Keep Vercel function isolated and minimal; avoid importing heavy package modules there.
@@ -92,3 +95,4 @@ Connection priority:
 - For integration tests that write rows, always clean up in `finally`.
 - Prefer adding small, explicit functions over broad module-level side effects.
 - Do not reintroduce container registry pushes or remote deploy hops unless the deployment architecture is intentionally changed.
+- Prefer Jenkins-scheduled `docker run` over in-container cron for production scheduling.

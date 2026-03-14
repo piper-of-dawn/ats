@@ -89,6 +89,10 @@ body.dashboard .card {
   margin: 0 auto;
 }
 
+.lazy-slot {
+  width: 100%;
+}
+
 .nav-card {
   margin-bottom: 24px;
   background: var(--nav-bg);
@@ -292,6 +296,55 @@ body.dashboard .card {
   margin: 0;
   padding: 16px;
   color: var(--muted);
+}
+
+.loading-card {
+  padding: 20px 22px;
+}
+
+.loading-card-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.loading-card-title {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.loading-card p {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.loading-card-skeleton {
+  height: 14px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(23, 69, 243, 0.08), rgba(23, 69, 243, 0.18), rgba(23, 69, 243, 0.08));
+  background-size: 200% 100%;
+  animation: loading-pulse 1.4s ease-in-out infinite;
+}
+
+.loading-card-skeleton-lg {
+  height: 220px;
+  border-radius: 18px;
+}
+
+.loading-card-error {
+  border-color: rgba(179, 75, 75, 0.34);
+}
+
+@keyframes loading-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .meta {

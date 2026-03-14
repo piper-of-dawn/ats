@@ -63,6 +63,21 @@ def _sanitize_postgres_dsn(dsn: str) -> str | None:
     )
 
 
+def _normalize_requested_columns(
+    available_columns: list[str], requested_columns: list[str] | None
+) -> list[str]:
+    if requested_columns is None:
+        return list(available_columns)
+
+    by_lower = {column.lower(): column for column in available_columns}
+    normalized_columns = []
+    for column in requested_columns:
+        resolved = by_lower.get(column.lower())
+        if resolved and resolved not in normalized_columns:
+            normalized_columns.append(resolved)
+    return normalized_columns
+
+
 @lru_cache(maxsize=1)
 def _get_conn_params():
     load_dotenv()
@@ -89,16 +104,24 @@ def _connect():
     return psycopg.connect(**conn_info)
 
 
-def fetch_table(table_name: str) -> pl.DataFrame:
+def fetch_table(table_name: str, columns: list[str] | None = None) -> pl.DataFrame:
+    selected_columns = _normalize_requested_columns(get_table_columns(table_name), columns)
+    if not selected_columns:
+        return pl.DataFrame()
+
     with _connect() as conn:
         with conn.cursor() as cur:
-            query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
+            query = sql.SQL("SELECT {} FROM {}").format(
+                sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
+                sql.Identifier(table_name),
+            )
             cur.execute(query)
             rows = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
     return pl.DataFrame(rows, schema=columns, orient="row")
 
 
+@lru_cache(maxsize=64)
 def get_table_columns(table_name: str) -> list[str]:
     with _connect() as conn:
         with conn.cursor() as cur:
@@ -114,6 +137,7 @@ def get_table_columns(table_name: str) -> list[str]:
             return [row[0] for row in cur.fetchall()]
 
 
+@lru_cache(maxsize=64)
 def get_date_column_name(table_name: str) -> str:
     columns = get_table_columns(table_name)
     by_lower = {column.lower(): column for column in columns}
@@ -157,16 +181,27 @@ def fetch_top_rows_for_date(
     table_name: str,
     selected_date: str,
     limit: int = 10,
+    columns: list[str] | None = None,
 ) -> pl.DataFrame:
-    columns = get_table_columns(table_name)
+    available_columns = get_table_columns(table_name)
     date_column = get_date_column_name(table_name)
-    order_by = []
-    if "ltm" in columns:
-        order_by.append(sql.SQL("{} desc nulls last").format(sql.Identifier("ltm")))
-    if "stm" in columns:
-        order_by.append(sql.SQL("{} desc nulls last").format(sql.Identifier("stm")))
+    selected_columns = _normalize_requested_columns(available_columns, columns)
+    if date_column not in selected_columns:
+        selected_columns.append(date_column)
 
-    query = sql.SQL("select * from {table} where cast({date_col} as date) = %s").format(
+    order_by = []
+    available_by_lower = {column.lower(): column for column in available_columns}
+    if "ltm" in available_by_lower:
+        order_by.append(
+            sql.SQL("{} desc nulls last").format(sql.Identifier(available_by_lower["ltm"]))
+        )
+    if "stm" in available_by_lower:
+        order_by.append(
+            sql.SQL("{} desc nulls last").format(sql.Identifier(available_by_lower["stm"]))
+        )
+
+    query = sql.SQL("select {columns} from {table} where cast({date_col} as date) = %s").format(
+        columns=sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
         table=sql.Identifier(table_name),
         date_col=sql.Identifier(date_column),
     )
@@ -182,8 +217,9 @@ def fetch_top_rows_for_date(
     return pl.DataFrame(rows, schema=result_columns, orient="row")
 
 
-def empty_table_frame(table_name: str) -> pl.DataFrame:
-    columns = get_table_columns(table_name)
+def empty_table_frame(table_name: str, columns: list[str] | None = None) -> pl.DataFrame:
+    available_columns = get_table_columns(table_name)
+    columns = _normalize_requested_columns(available_columns, columns)
     return pl.DataFrame(schema=columns)
 
 

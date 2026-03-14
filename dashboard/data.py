@@ -15,13 +15,26 @@ from ats.dataIO.supabase_integration import (
     fetch_table,
     fetch_recent_dates,
     fetch_top_rows_for_date,
+    get_date_column_name,
+    get_table_columns,
+)
+
+
+_DASHBOARD_PRIORITY_COLUMNS = (
+    "ticker",
+    "yahoo_finance_ticker",
+    "ltm",
+    "stm",
+    "beta",
+    "representative_index_ticker",
 )
 
 
 def get_dashboard_context(table_name: str) -> dict:
+    columns = get_dashboard_columns(table_name)
     available_dates = fetch_recent_dates(table_name, limit=7)
     selected_date = available_dates[0] if available_dates else None
-    rows_df = fetch_rows_for_selected_date(table_name, selected_date)
+    rows_df = fetch_rows_for_selected_date(table_name, selected_date, columns)
     columns = list(rows_df.columns)
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
@@ -36,7 +49,7 @@ def get_dashboard_context(table_name: str) -> dict:
 
 
 def get_nav_context() -> dict | None:
-    nav_df = fetch_table("fund_nav")
+    nav_df = fetch_table("fund_nav", columns=["date", "nav"])
     if nav_df.is_empty():
         return None
 
@@ -86,10 +99,32 @@ def get_nav_context() -> dict | None:
     }
 
 
-def fetch_rows_for_selected_date(table_name: str, selected_date: str | None):
+def get_dashboard_columns(table_name: str) -> list[str]:
+    available_columns = get_table_columns(table_name)
+    by_lower = {column.lower(): column for column in available_columns}
+
+    selected_columns = [
+        by_lower[column]
+        for column in _DASHBOARD_PRIORITY_COLUMNS
+        if column in by_lower
+    ]
+
+    date_column = by_lower.get(get_date_column_name(table_name).lower())
+    if date_column and date_column not in selected_columns:
+        selected_columns.append(date_column)
+
+    if selected_columns:
+        return selected_columns
+
+    return available_columns[:6]
+
+
+def fetch_rows_for_selected_date(
+    table_name: str, selected_date: str | None, columns: list[str]
+):
     if selected_date is None:
-        return empty_table_frame(table_name)
-    return fetch_top_rows_for_date(table_name, selected_date, limit=10)
+        return empty_table_frame(table_name, columns=columns)
+    return fetch_top_rows_for_date(table_name, selected_date, limit=10, columns=columns)
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:

@@ -19,24 +19,32 @@ def create_app() -> Flask:
             return render_template("table_not_found.html", table_name=table_name), 404
         return render_template("table.html", **context), 200
 
-    @app.get("/")
-    def dashboard() -> Response:
-        factor_table_html, factor_status = render_table("us_midcap_metrics")
-        largecap_table_html, largecap_status = render_table("us_largecap_metrics")
+    def render_nav() -> tuple[str, int]:
         try:
             nav_context = get_nav_context()
         except (KeyError, UndefinedTable):
             nav_context = None
+        if nav_context is None:
+            return render_template("nav_unavailable.html"), 200
+        return render_template("nav_card.html", nav_context=nav_context), 200
+
+    @app.get("/")
+    def dashboard() -> Response:
         return Response(
-            render_template(
-                "dashboard.html",
-                nav_context=nav_context,
-                table_html=factor_table_html,
-                secondary_table_html=largecap_table_html,
-            ),
-            status=max(factor_status, largecap_status),
+            render_template("dashboard.html"),
+            status=200,
             mimetype="text/html",
         )
+
+    @app.get("/partials/nav")
+    def nav_partial() -> Response:
+        nav_html, nav_status = render_nav()
+        return Response(nav_html, status=nav_status, mimetype="text/html")
+
+    @app.get("/partials/table/<table_name>")
+    def table_partial(table_name: str) -> Response:
+        table_html, table_status = render_table(table_name)
+        return Response(table_html, status=table_status, mimetype="text/html")
 
     return app
 

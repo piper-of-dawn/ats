@@ -5,92 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Supabase Dashboard</title>
   <link rel="stylesheet" href="/static/css/dashboard.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="dashboard">
   <div class="dashboard-shell">
-    {% if nav_context %}
-    <section class="card nav-card">
-      <div class="nav-card-header">
-        <div>
-          <div class="nav-card-title">Fund NAV</div>
-          <div class="nav-card-subtitle">Daily fund NAV history</div>
-        </div>
-      </div>
-      <div class="nav-card-quote-strip">
-        <div class="nav-card-quote nav-card-quote-primary">
-          <div class="nav-card-price">{{ nav_context.latest_nav }}</div>
-          <div class="nav-card-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
-            {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
-          </div>
-          <div class="nav-card-stamp">As of {{ nav_context.latest_date }}</div>
-        </div>
-        <div class="nav-card-quote nav-card-quote-secondary">
-          <div class="nav-card-price">{{ nav_context.previous_nav }}</div>
-          <div class="nav-card-change negative">
-            Reference {{ nav_context.reference_nav }}
-          </div>
-          <div class="nav-card-stamp">Previous close {{ nav_context.previous_date }}</div>
-        </div>
-      </div>
-      <div class="nav-card-toolbar">
-        <div class="nav-range-picker">
-          <button type="button" id="nav-range-button" class="nav-range-button" aria-haspopup="true" aria-expanded="false">
-            <span id="nav-range-label">YTD</span>
-            <span class="nav-range-caret">⌄</span>
-          </button>
-          <div id="nav-range-menu" class="nav-range-menu" hidden>
-            <button type="button" data-range="1D">1D</button>
-            <button type="button" data-range="5D">5D</button>
-            <button type="button" data-range="1M">1M</button>
-            <button type="button" data-range="6M">6M</button>
-            <button type="button" data-range="YTD">YTD</button>
-            <button type="button" data-range="1Y">1Y</button>
-            <button type="button" data-range="5Y">5Y</button>
-            <button type="button" data-range="MAX">MAX</button>
-          </div>
-        </div>
-      </div>
-      <div class="nav-chart-wrap">
-        <canvas
-          id="nav-chart"
-          data-points='{{ nav_context.chart_points|tojson }}'
-        ></canvas>
-      </div>
-      <div class="nav-stats">
-        <div class="nav-stat">
-          <span class="nav-stat-label">Max Drawdown</span>
-          <span id="nav-max-drawdown" class="nav-stat-value negative">{{ nav_context.max_drawdown }}</span>
-        </div>
-        <div class="nav-stat">
-          <span class="nav-stat-label">Max Upside</span>
-          <span id="nav-max-upside" class="nav-stat-value positive">{{ nav_context.max_upside }}</span>
-        </div>
+    <section
+      id="nav-slot"
+      class="lazy-slot"
+      data-component-url="/partials/nav"
+      data-component-kind="nav"
+      data-component-label="Fund NAV"
+    >
+      <div class="card loading-card">
+        <div class="loading-card-label">Fund NAV</div>
+        <div class="loading-card-title">Loading chart</div>
+        <div class="loading-card-skeleton loading-card-skeleton-lg"></div>
+        <div class="loading-card-skeleton"></div>
       </div>
     </section>
-    {% endif %}
     <div class="dashboard-grid">
       <div class="dashboard-main">
-        {{ table_html|safe }}
+        <section
+          id="main-table-slot"
+          class="lazy-slot"
+          data-component-url="/partials/table/us_midcap_metrics"
+          data-component-kind="table"
+          data-component-label="Midcap Metrics"
+        >
+          <div class="card loading-card">
+            <div class="loading-card-label">Midcap Metrics</div>
+            <div class="loading-card-title">Waiting for chart to finish</div>
+            <div class="loading-card-skeleton"></div>
+            <div class="loading-card-skeleton"></div>
+            <div class="loading-card-skeleton"></div>
+          </div>
+        </section>
       </div>
       <aside class="dashboard-side">
-        {{ secondary_table_html|safe }}
+        <section
+          id="secondary-table-slot"
+          class="lazy-slot"
+          data-component-url="/partials/table/us_largecap_metrics"
+          data-component-kind="table"
+          data-component-label="Largecap Metrics"
+        >
+          <div class="card loading-card">
+            <div class="loading-card-label">Largecap Metrics</div>
+            <div class="loading-card-title">Queued behind the main table</div>
+            <div class="loading-card-skeleton"></div>
+            <div class="loading-card-skeleton"></div>
+          </div>
+        </section>
       </aside>
     </div>
   </div>
   <script>
-    const canvas = document.getElementById("nav-chart");
-    const rangeButton = document.getElementById("nav-range-button");
-    const rangeLabel = document.getElementById("nav-range-label");
-    const rangeMenu = document.getElementById("nav-range-menu");
-    const maxDrawdownNode = document.getElementById("nav-max-drawdown");
-    const maxUpsideNode = document.getElementById("nav-max-upside");
+    const loadComponentMarkup = async (slot) => {
+      const response = await fetch(slot.dataset.componentUrl, {
+        headers: {"X-Requested-With": "dashboard-lazy-load"}
+      });
+      const html = await response.text();
+      slot.innerHTML = html;
+      if (!response.ok && !html.trim()) {
+        throw new Error(`Failed to load ${slot.dataset.componentLabel}`);
+      }
+      return slot;
+    };
 
-    if (canvas && window.Chart) {
+    const loadChartJs = async () => {
+      if (window.Chart) return window.Chart;
+
+      const chartScript = document.querySelector('script[src*="chart.umd.min.js"]');
+      if (chartScript?.dataset.ready === "true") {
+        return window.Chart;
+      }
+
+      return new Promise((resolve, reject) => {
+        const onLoad = () => {
+          chartScript.dataset.ready = "true";
+          resolve(window.Chart);
+        };
+        const onError = () => reject(new Error("Chart library failed to load"));
+
+        if (!chartScript) {
+          reject(new Error("Chart library script is missing"));
+          return;
+        }
+
+        chartScript.addEventListener("load", onLoad, {once: true});
+        chartScript.addEventListener("error", onError, {once: true});
+      });
+    };
+
+    const initNavChart = async (root) => {
+      const canvas = root.querySelector("#nav-chart");
+      const rangeButton = root.querySelector("#nav-range-button");
+      const rangeLabel = root.querySelector("#nav-range-label");
+      const rangeMenu = root.querySelector("#nav-range-menu");
+      const maxDrawdownNode = root.querySelector("#nav-max-drawdown");
+      const maxUpsideNode = root.querySelector("#nav-max-upside");
+
+      if (!canvas) return;
+
+      await loadChartJs();
+      if (!window.Chart) return;
+
       const allPoints = JSON.parse(canvas.dataset.points || "[]");
       const positiveColor = "#1745F3";
       const negativeColor = "#B42318";
-      const rangeDayMap = { "1D": 1, "5D": 5, "1M": 30, "6M": 183, "1Y": 365, "5Y": 1825 };
+      const rangeDayMap = {"1D": 1, "5D": 5, "1M": 30, "6M": 183, "1Y": 365, "5Y": 1825};
       let currentAverage = 0;
       let visibleTickLabels = new Set();
 
@@ -222,7 +245,7 @@
       visibleTickLabels = computeVisibleTickLabels(initialPoints);
       updateStats(initialPoints);
 
-      const chart = new Chart(canvas, {
+      const chart = new window.Chart(canvas, {
         type: "line",
         data: {
           labels: initialPoints.map((point) => point.label),
@@ -306,10 +329,12 @@
         chart.data.labels = points.map((point) => point.label);
         chart.data.datasets[0].data = points.map((point) => point.y);
         chart.update();
-        rangeLabel.textContent = range;
+        if (rangeLabel) {
+          rangeLabel.textContent = range;
+        }
       };
 
-      if (rangeButton && rangeMenu && rangeLabel) {
+      if (rangeButton && rangeMenu) {
         rangeButton.addEventListener("click", () => {
           const expanded = rangeButton.getAttribute("aria-expanded") === "true";
           rangeButton.setAttribute("aria-expanded", String(!expanded));
@@ -331,7 +356,35 @@
           }
         });
       }
-    }
+    };
+
+    const renderErrorState = (slot, error) => {
+      slot.innerHTML = `
+        <div class="card loading-card loading-card-error">
+          <div class="loading-card-label">${slot.dataset.componentLabel}</div>
+          <div class="loading-card-title">Failed to load</div>
+          <p>${error.message}</p>
+        </div>
+      `;
+    };
+
+    const loadDashboardSequentially = async () => {
+      const slots = Array.from(document.querySelectorAll(".lazy-slot"));
+      for (const slot of slots) {
+        try {
+          await loadComponentMarkup(slot);
+          if (slot.dataset.componentKind === "nav") {
+            await initNavChart(slot);
+          }
+        } catch (error) {
+          renderErrorState(slot, error);
+        }
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadDashboardSequentially();
+    });
   </script>
 </body>
 </html>
