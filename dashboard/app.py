@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from flask import Flask, Response, render_template
-from dashboard.data import UndefinedTable, get_dashboard_context
+from dashboard.data import UndefinedTable, get_dashboard_context, get_nav_context
 
 
 def create_app() -> Flask:
@@ -23,9 +23,14 @@ def create_app() -> Flask:
     def dashboard() -> Response:
         factor_table_html, factor_status = render_table("us_midcap_metrics")
         largecap_table_html, largecap_status = render_table("us_largecap_metrics")
+        try:
+            nav_context = get_nav_context()
+        except (KeyError, UndefinedTable):
+            nav_context = None
         return Response(
             render_template(
                 "dashboard.html",
+                nav_context=nav_context,
                 table_html=factor_table_html,
                 secondary_table_html=largecap_table_html,
             ),

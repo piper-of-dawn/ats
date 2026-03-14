@@ -34,6 +34,24 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 - Run local dashboard: `uv run dashboard-local`
 - Run tests: `uv run pytest -q`
 - Run integration test only: `uv run pytest tests/test_run_jobs_integration.py -q -rs`
+- Build wheel: `just build`
+
+## CI/CD Architecture
+- CI/CD is Jenkins-only. GitHub Actions and GitHub webhooks are not part of the active deployment path.
+- Jenkins uses a multibranch pipeline with script path `jenkins/Jenkinsfile`.
+- Jenkins should be configured to discover only `main`, with periodic scans instead of webhook triggers.
+- On `main`, Jenkins builds the wheel with `just build`, optionally runs `uv run pytest -q`, then builds the Docker image locally as `ats:latest`.
+- Deployment is local to the Jenkins machine. The pipeline writes `docker-compose.yml` and `deploy.env` into `DEPLOY_PATH` and runs `docker compose up -d`.
+- Docker registry push/pull is intentionally not used in the active setup.
+- After deployment, Jenkins can prune dangling images and builder cache to limit disk growth.
+
+## Docker/Scheduler Notes
+- The Docker image is built from the prebuilt wheel in `dist/`; it does not copy the source tree directly.
+- The container is a scheduler container, not a one-shot CLI container.
+- `docker/cron-entrypoint.sh` creates a cron job that runs daily at `08:00 UTC`.
+- Runtime command selection is passed through `ATS_COMMANDS`, a comma-separated list of table names. Each command is executed sequentially by the cron runner.
+- The image includes `cron` and `libpq5` so scheduled jobs can run `psycopg` successfully inside the container.
+- Host-side deploy metadata lives in `DEPLOY_PATH`, typically `/var/lib/jenkins/ats`. Keep only `docker-compose.yml`, `deploy.env`, and `app.env` there.
 
 ## Vercel Deployment Notes
 - Vercel config is in `vercel.json` and targets `api/index.py` with `@vercel/python`.
@@ -43,6 +61,10 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 ## Environment Variables
 ### Local/backend pipeline
 - `SUPABASE_PASSWORD` used by `src/ats/dataIO/supabase_integration.py`.
+
+### Jenkins/Docker deployment
+- `ATS_COMMANDS`: comma-separated table names run by the scheduler container, e.g. `us_midcap,us_smallcap`.
+- `SUPABASE_PASSWORD` and any DB connection env vars should be provided through the runtime app env file referenced by `DEPLOY_APP_ENV_FILE`.
 
 ### Vercel dashboard (`api/index.py`)
 Connection priority:
@@ -60,9 +82,13 @@ Connection priority:
 - Multiprocessing fork warnings in tests:
   - Mitigation in code: `get_context("spawn")` in `run_jobs`.
 - Vercel builds can accidentally pull backend lock/deps if `.vercelignore` is missing or incorrect.
+- Jenkins must have access to the local Docker daemon; the `jenkins` user needs permission to access `/var/run/docker.sock`.
+- Jenkins agents on Arch need `postgresql-libs` installed or `psycopg` imports will fail due to missing `libpq`.
+- `DEPLOY_PATH` must be writable by the `jenkins` user. `/var/lib/jenkins/ats` is the intended default; avoid root-owned deploy directories unless explicitly managed.
 
 ## Conventions for Future Changes
 - Keep Vercel function isolated and minimal; avoid importing heavy package modules there.
 - Keep SQL table names identifier-safe using `psycopg.sql.Identifier`.
 - For integration tests that write rows, always clean up in `finally`.
 - Prefer adding small, explicit functions over broad module-level side effects.
+- Do not reintroduce container registry pushes or remote deploy hops unless the deployment architecture is intentionally changed.
