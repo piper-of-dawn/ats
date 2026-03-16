@@ -3,6 +3,7 @@
 ## Purpose
 This repo has two related concerns:
 - Factor computation pipeline (Python package under `src/ats`)
+- Gmail-driven Trading 212 PDF ingestion for `fund_nav` and `positions`
 - Lightweight dashboard deployment on Vercel (`api/index.py`)
 
 The dashboard reads directly from Supabase/Postgres and renders an HTML table.
@@ -15,7 +16,13 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
   - `run_jobs(jobs, as_of_date=None)`: runs multiprocessing pipeline, writes to `factor_metrics`.
 - `src/ats/processing.py`: per-ticker processing logic (`process_ticker`).
 - `src/ats/dataIO/supabase_integration.py`: DB I/O for local/backend pipeline.
-  - `fetch_table`, `batch_insert`, `batch_insert_polars_df`, `table_exists`.
+  - `fetch_table`, `batch_insert`, `batch_insert_polars_df`, `delete_all_rows`, `delete_rows_by_values`, `table_exists`.
+- `src/ats/dataIO/statement_table.py`: parses Trading 212 statement summary rows from PDF into `StatementTable`.
+- `src/ats/dataIO/open_positions.py`: parses Trading 212 open positions from PDF into `Position` rows.
+- `src/ats/gmail_sync.py`: scheduled Gmail ingestion flow.
+  - Reads latest `fund_nav` date from Postgres.
+  - Runs `gmail-downloader [YYYY-MM-DD]`.
+  - Parses new PDFs and refreshes `fund_nav` plus `positions`.
 - `src/ats/dashboard.py`: local Flask dashboard app (package-level app).
 - `api/index.py`: Vercel Flask function for production dashboard deployment.
 - `api/requirements.txt`: Vercel-only minimal Python dependencies.
@@ -26,11 +33,13 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 2. Jobs are created from `yahoo_finance_ticker` and `representative_index_ticker`.
 3. `run_jobs` processes in parallel (`spawn` context) and computes `stm`, `ltm`, `beta`.
 4. Results are inserted into `factor_metrics` with `as_of_date`.
-5. Vercel dashboard can display any table via query param `?table=<name>`.
+5. Gmail sync reads the latest `fund_nav.date`, downloads newer Trading 212 PDFs, inserts fresh `fund_nav` rows from statement tables, then truncates and reloads `positions` from the newest PDF's open positions section.
+6. Vercel dashboard can display any table via query param `?table=<name>`.
 
 ## Local Commands
 - Install/sync deps: `uv sync`
 - Run pipeline CLI: `uv run python main.py <table_name>` (or package CLI if configured)
+- Run Gmail sync locally: `uv run gmail-fund-nav-sync`
 - Run local dashboard: `uv run dashboard-local`
 - Run tests: `uv run pytest -q`
 - Run integration test only: `uv run pytest tests/test_run_jobs_integration.py -q -rs`
@@ -38,23 +47,27 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 
 ## CI/CD Architecture
 - CI/CD is Jenkins-only. GitHub Actions and GitHub webhooks are not part of the active deployment path.
-- Jenkins uses two pipeline jobs stored in repo:
+- Jenkins uses three pipeline jobs stored in repo:
   - `jenkins/Jenkinsfile`: multibranch build pipeline for `main`.
   - `jenkins/Jenkinsfile.run`: scheduled pipeline that runs the already-built Docker image.
+  - `jenkins/Jenkinsfile.gmail`: scheduled pipeline that runs the Gmail statement import at `07:00` in `Europe/Berlin`.
 - Jenkins should be configured to discover only `main`, with periodic scans instead of webhook triggers.
 - The build pipeline checks whether the current `main` commit differs from the last successfully built commit recorded on the Jenkins host. It rebuilds only when a new commit is present, unless `FORCE_REBUILD=true`.
 - On rebuild, Jenkins builds the wheel with `just build`, optionally runs `uv run pytest -q`, then builds the Docker image locally as `ats:latest`.
 - The scheduled run job is responsible for the daily execution of ATS commands at `08:00` in `Europe/Berlin` time, which covers CET/CEST automatically.
+- The Gmail sync job is responsible for the daily Trading 212 statement import at `07:00` in `Europe/Berlin` time, which covers CET/CEST automatically.
 - Docker registry push/pull is intentionally not used in the active setup.
 - After a rebuild, Jenkins can prune dangling images and builder cache to limit disk growth.
 
 ## Docker/Scheduler Notes
 - The Docker image is built from the prebuilt wheel in `dist/`; it does not copy the source tree directly.
 - The image contains `/usr/local/bin/run-ats-commands.sh`, which runs each table listed in `ATS_COMMANDS` sequentially.
+- The image installs `poppler-utils`, so `pdftotext` is available for Trading 212 PDF parsing inside the container.
 - `docker/cron-entrypoint.sh` still supports the legacy in-container cron mode, but the active deployment path should prefer Jenkins scheduling via `jenkins/Jenkinsfile.run`.
 - The image includes `cron` and `libpq5` so both legacy cron mode and direct Jenkins-triggered runs can execute `psycopg` successfully inside the container.
 - Host-side Jenkins state for image rebuild detection should live in `BUILD_STATE_DIR`, typically `/var/lib/jenkins/ats-build`.
 - Runtime env files for the scheduled run job should live in a Jenkins-managed path such as `/var/lib/jenkins/ats/app.env`.
+- Gmail runtime state should live in a Jenkins-managed host path such as `/var/lib/jenkins/ats-gmail`, with persistent `config/token.json`, `output/.state.json`, and downloaded PDFs mounted into the container.
 
 ## Vercel Deployment Notes
 - Vercel config is in `vercel.json` and targets `api/index.py` with `@vercel/python`.
@@ -68,6 +81,35 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 ### Jenkins/Docker deployment
 - `ATS_COMMANDS`: comma-separated table names run sequentially inside the container, e.g. `us_midcap,us_smallcap`.
 - `SUPABASE_PASSWORD` and any DB connection env vars should be provided through the runtime app env file passed to the scheduled Jenkins run job.
+- Gmail sync runtime env file is generated by `jenkins/Jenkinsfile.gmail` on each run and should include:
+  - `GMAIL_QUERY`
+  - `OUTPUT_DIR`
+  - `OAUTH_CLIENT_SECRET_FILE`
+  - `TOKEN_FILE`
+  - `STATE_FILE`
+  - `MAX_RESULTS`
+  - `DRY_RUN`
+- Jenkins credentials for Gmail sync:
+  - Secret file credential for the Google Desktop OAuth client JSON, typically `gmail-oauth-client-secret`.
+  - Optional Secret file credential for a bootstrap `token.json`, used only for the first run if the persistent runtime token file does not exist yet.
+
+## gmail_parser Integration Notes
+- Installed dependency: direct wheel URL in `pyproject.toml`.
+- Console script: `gmail-downloader`, which dispatches to `downloader.main`.
+- Source methods used by this repo:
+  - `downloader.download_pdfs(after_date=None)`: downloads matching Gmail PDF attachments, appending Gmail `after:` filtering when a date is provided.
+  - `statement_table.parse_statement_table(pdf_path)`: parses first-page account summary values, including `account_value`, from a Trading 212 PDF.
+  - `statement_table.parse_statement_tables(directory)`: batch parses all PDFs in a directory.
+  - `open_positions.parse_open_positions(pdf_path)`: extracts invest open positions rows with `Ticker`, `ISIN`, `Currency`, `Value`, and derived `Country`.
+- Gmail downloader behavior:
+  - Loads optional `config/.env`, then reads env vars directly.
+  - Requires a Google OAuth Desktop app JSON, not a web client JSON.
+  - Persists token JSON to `TOKEN_FILE`.
+  - Persists attachment dedupe state by `messageId:attachmentId` in `STATE_FILE`.
+  - Names downloads like `YYYY-MM-DD_<message-prefix>_<filename>.pdf`.
+- Packaging caveat:
+  - The published `gmail_parser` wheel exposes the downloader correctly, but its `statement_table.py` and `open_positions.py` wrappers import `src.parsers`, which is missing from the wheel.
+  - This repo vendors equivalent parsers under `src/ats/dataIO/` so scheduled ingestion does not depend on that packaging issue.
 
 ### Vercel dashboard (`api/index.py`)
 Connection priority:
@@ -82,6 +124,10 @@ Connection priority:
 ## Known Gotchas
 - Supabase pooler + prepared statements can trigger `DuplicatePreparedStatement`.
   - Mitigation in code: `prepare_threshold=None` on psycopg connections.
+- Gmail scheduled jobs cannot complete first-time OAuth interactively.
+  - Mitigation in deployment: pre-seed `/var/lib/jenkins/ats-gmail/config/token.json` from a Jenkins Secret file credential, then allow the persistent host-mounted token to refresh in place on later runs.
+- Trading 212 PDF parsing depends on `pdftotext`.
+  - Mitigation in Docker image: install `poppler-utils`.
 - Multiprocessing fork warnings in tests:
   - Mitigation in code: `get_context("spawn")` in `run_jobs`.
 - Vercel builds can accidentally pull backend lock/deps if `.vercelignore` is missing or incorrect.

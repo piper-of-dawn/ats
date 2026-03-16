@@ -237,6 +237,27 @@ def batch_insert(table_name: str, columns: list[str], data: list[tuple]):
         conn.commit()
 
 
+def delete_all_rows(table_name: str):
+    query = sql.SQL("DELETE FROM {}").format(sql.Identifier(table_name))
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
+        conn.commit()
+
+
+def delete_rows_by_values(table_name: str, column_name: str, values: list[object]):
+    if not values:
+        return
+    query = sql.SQL("DELETE FROM {} WHERE {} = ANY(%s)").format(
+        sql.Identifier(table_name),
+        sql.Identifier(column_name),
+    )
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (values,))
+        conn.commit()
+
+
 def table_exists(table_name: str) -> bool:
     with _connect() as conn:
         with conn.cursor() as cur:
