@@ -51,7 +51,9 @@ source = { editable = "." }
 dependencies = [
     { name = "dotenv" },
     { name = "flask" },
-    { name = "gmail-parser" },
+    { name = "google-api-python-client" },
+    { name = "google-auth" },
+    { name = "google-auth-oauthlib" },
     { name = "ipykernel" },
     { name = "numpy" },
     { name = "pandas" },
@@ -73,7 +75,9 @@ dev = [
 requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "flask", specifier = ">=3.0.0" },
-    { name = "gmail-parser", url = "https://github.com/piper-of-dawn/gmail_parser/releases/download/v0.1.0/gmail_parser-0.1.0-py3-none-any.whl" },
+    { name = "google-api-python-client", specifier = ">=2.192.0" },
+    { name = "google-auth", specifier = ">=2.49.1" },
+    { name = "google-auth-oauthlib", specifier = ">=1.3.0" },
     { name = "ipykernel", specifier = ">=7.2.0" },
     { name = "numpy", specifier = ">=1.20.0" },
     { name = "pandas", specifier = ">=3.0.1" },
@@ -488,26 +492,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/90/b2/2a3d1374b7780999d3184e171e25439a8358c47b481f68be883c14086b4c/frozendict-2.4.7.tar.gz", hash = "sha256:e478fb2a1391a56c8a6e10cc97c4a9002b410ecd1ac28c18d780661762e271bd", size = 317082, upload-time = "2025-11-11T22:40:14.251Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/38/74/f94141b38a51a553efef7f510fc213894161ae49b88bffd037f8d2a7cb2f/frozendict-2.4.7-py3-none-any.whl", hash = "sha256:972af65924ea25cf5b4d9326d549e69a9a4918d8a76a9d3a7cd174d98b237550", size = 16264, upload-time = "2025-11-11T22:40:12.836Z" },
-]
-
-[[package]]
-name = "gmail-parser"
-version = "0.1.0"
-source = { url = "https://github.com/piper-of-dawn/gmail_parser/releases/download/v0.1.0/gmail_parser-0.1.0-py3-none-any.whl" }
-dependencies = [
-    { name = "google-api-python-client" },
-    { name = "google-auth" },
-    { name = "google-auth-oauthlib" },
-]
-wheels = [
-    { url = "https://github.com/piper-of-dawn/gmail_parser/releases/download/v0.1.0/gmail_parser-0.1.0-py3-none-any.whl", hash = "sha256:2d2d151b4b66b421b23088813beb4eb86d530582b83425644cd2543e8c275206" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "google-api-python-client" },
-    { name = "google-auth" },
-    { name = "google-auth-oauthlib" },
 ]
 
 [[package]]

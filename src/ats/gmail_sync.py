@@ -1,6 +1,5 @@
 import argparse
 import re
-import subprocess
 from collections.abc import Iterable
 from datetime import date
 import os
@@ -8,6 +7,7 @@ from pathlib import Path
 
 from ats.dataIO.open_positions import parse_open_positions
 from ats.dataIO.statement_table import StatementTable, parse_statement_table
+from ats.gmail_downloader import download_pdfs
 from ats.dataIO.supabase_integration import (
     batch_insert,
     delete_all_rows,
@@ -35,10 +35,7 @@ def get_latest_fund_nav_date() -> str | None:
 
 
 def run_gmail_downloader(after_date: str | None) -> None:
-    command = ["gmail-downloader"]
-    if after_date:
-        command.append(after_date)
-    subprocess.run(command, check=True)
+    download_pdfs(after_date)
 
 
 def get_output_dir(cli_output_dir: str | None = None) -> Path:

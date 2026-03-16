@@ -93,23 +93,20 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
   - Secret file credential for the Google Desktop OAuth client JSON, typically `gmail-oauth-client-secret`.
   - Optional Secret file credential for a bootstrap `token.json`, used only for the first run if the persistent runtime token file does not exist yet.
 
-## gmail_parser Integration Notes
-- Installed dependency: direct wheel URL in `pyproject.toml`.
-- Console script: `gmail-downloader`, which dispatches to `downloader.main`.
+## Gmail Downloader Notes
+- The repo vendors the Gmail downloader and PDF parsers locally under `src/ats/`; it does not need the external `gmail_parser` wheel.
+- Console script: `gmail-downloader`, which dispatches to `ats.gmail_downloader:main`.
 - Source methods used by this repo:
-  - `downloader.download_pdfs(after_date=None)`: downloads matching Gmail PDF attachments, appending Gmail `after:` filtering when a date is provided.
-  - `statement_table.parse_statement_table(pdf_path)`: parses first-page account summary values, including `account_value`, from a Trading 212 PDF.
-  - `statement_table.parse_statement_tables(directory)`: batch parses all PDFs in a directory.
-  - `open_positions.parse_open_positions(pdf_path)`: extracts invest open positions rows with `Ticker`, `ISIN`, `Currency`, `Value`, and derived `Country`.
+  - `ats.gmail_downloader.download_pdfs(after_date=None)`: downloads matching Gmail PDF attachments, appending Gmail `after:` filtering when a date is provided.
+  - `ats.dataIO.statement_table.parse_statement_table(pdf_path)`: parses first-page account summary values, including `account_value`, from a Trading 212 PDF.
+  - `ats.dataIO.statement_table.parse_statement_tables(directory)`: batch parses all PDFs in a directory.
+  - `ats.dataIO.open_positions.parse_open_positions(pdf_path)`: extracts invest open positions rows with `Ticker`, `ISIN`, `Currency`, `Value`, and derived `Country`.
 - Gmail downloader behavior:
   - Loads optional `config/.env`, then reads env vars directly.
   - Requires a Google OAuth Desktop app JSON, not a web client JSON.
   - Persists token JSON to `TOKEN_FILE`.
   - Persists attachment dedupe state by `messageId:attachmentId` in `STATE_FILE`.
   - Names downloads like `YYYY-MM-DD_<message-prefix>_<filename>.pdf`.
-- Packaging caveat:
-  - The published `gmail_parser` wheel exposes the downloader correctly, but its `statement_table.py` and `open_positions.py` wrappers import `src.parsers`, which is missing from the wheel.
-  - This repo vendors equivalent parsers under `src/ats/dataIO/` so scheduled ingestion does not depend on that packaging issue.
 
 ### Vercel dashboard (`api/index.py`)
 Connection priority:
