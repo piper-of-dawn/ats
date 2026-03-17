@@ -21,7 +21,10 @@ from ats.dataIO.supabase_integration import (
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Download Trading 212 Gmail statements and sync fund_nav and positions."
+        description=(
+            "Download Trading 212 Gmail statements and sync "
+            "trading212_daily_account and positions."
+        )
     )
     parser.add_argument(
         "--output-dir",
@@ -32,7 +35,7 @@ def parse_args():
 
 
 def get_latest_fund_nav_date() -> str | None:
-    dates = fetch_recent_dates("fund_nav", limit=1)
+    dates = fetch_recent_dates("trading212_daily_account", limit=1)
     return dates[0] if dates else None
 
 
@@ -77,6 +80,15 @@ def build_account_status_rows(
         rows.append(statement.to_dict())
     rows.sort(key=lambda row: (row["date"], row["account_id"]))
     return rows
+
+
+def build_fund_nav_rows(statements: Iterable[StatementTable]) -> list[tuple[date, float]]:
+    by_date: dict[date, float] = {}
+    for statement in statements:
+        if statement.account_value is None:
+            continue
+        by_date[statement.date] = float(statement.account_value)
+    return sorted(by_date.items(), key=lambda item: item[0])
 
 
 def insert_account_status_row(
@@ -179,7 +191,7 @@ def sync_positions(latest_pdf: Path) -> int:
 
 def run_sync(cli_output_dir: str | None = None) -> int:
     latest_date = get_latest_fund_nav_date()
-    print(f"Latest fund_nav date: {latest_date or 'none'}")
+    print(f"Latest trading212_daily_account date: {latest_date or 'none'}")
 
     run_gmail_downloader(latest_date)
 
