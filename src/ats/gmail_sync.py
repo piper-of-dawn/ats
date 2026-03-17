@@ -5,13 +5,15 @@ from datetime import date
 import os
 from pathlib import Path
 
+from psycopg import sql
+
 from ats.dataIO.open_positions import parse_open_positions
 from ats.dataIO.statement_table import StatementTable, parse_statement_table
 from ats.gmail_downloader import download_pdfs
 from ats.dataIO.supabase_integration import (
+    _connect,
     batch_insert,
     delete_all_rows,
-    delete_rows_by_values,
     fetch_recent_dates,
     get_table_columns,
 )
@@ -65,32 +67,65 @@ def get_candidate_pdfs(output_dir: Path, after_date: str | None) -> list[Path]:
     return candidates
 
 
-def build_fund_nav_rows(statements: Iterable[StatementTable]) -> list[tuple[date, float]]:
-    by_date: dict[date, float] = {}
+def build_account_status_rows(
+    statements: Iterable[StatementTable],
+) -> list[dict[str, date | str | float | None]]:
+    rows = []
     for statement in statements:
-        if statement.account_value is None:
-            continue
-        by_date[statement.date] = float(statement.account_value)
-    return sorted(by_date.items(), key=lambda item: item[0])
+        if statement.account_id is None:
+            raise ValueError("Statement table row is missing account_id.")
+        rows.append(statement.to_dict())
+    rows.sort(key=lambda row: (row["date"], row["account_id"]))
+    return rows
 
 
-def sync_fund_nav(statements: Iterable[StatementTable]) -> int:
-    rows = build_fund_nav_rows(statements)
+def insert_account_status_row(
+    table_name: str, columns: list[str], row_data: dict[str, date | str | float | None]
+) -> None:
+    row = tuple(row_data[column] for column in columns)
+    assignments = sql.SQL(", ").join(
+        sql.SQL("{} = EXCLUDED.{}").format(
+            sql.Identifier(column),
+            sql.Identifier(column),
+        )
+        for column in columns
+        if column not in {"date", "account_id"}
+    )
+    query = sql.SQL(
+        "INSERT INTO {} ({}) VALUES ({}) "
+        "ON CONFLICT ({}, {}) DO UPDATE SET {}"
+    ).format(
+        sql.Identifier(table_name),
+        sql.SQL(", ").join(sql.Identifier(column) for column in columns),
+        sql.SQL(", ").join(sql.Placeholder() for _ in columns),
+        sql.Identifier("date"),
+        sql.Identifier("account_id"),
+        assignments,
+    )
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, row)
+        conn.commit()
+
+
+def sync_account_status(statements: Iterable[StatementTable]) -> int:
+    rows = build_account_status_rows(statements)
     if not rows:
-        print("No fund NAV rows parsed from statement PDFs.")
+        print("No trading212_daily_account rows parsed from statement PDFs.")
         return 0
 
-    columns = get_table_columns("fund_nav")
-    by_lower = {column.lower(): column for column in columns}
-    date_column = by_lower.get("date")
-    nav_column = by_lower.get("nav")
-    if date_column is None or nav_column is None:
-        raise ValueError("fund_nav must contain 'date' and 'nav' columns.")
+    columns = get_table_columns("trading212_daily_account")
+    row_columns = [column for column in columns if column in rows[0]]
+    required_columns = {"date", "account_id"}
+    if not required_columns.issubset(row_columns):
+        raise ValueError(
+            "trading212_daily_account must contain at least 'date' and 'account_id' columns."
+        )
 
-    nav_dates = [nav_date for nav_date, _ in rows]
-    delete_rows_by_values("fund_nav", date_column, nav_dates)
-    batch_insert("fund_nav", [date_column, nav_column], rows)
-    print(f"Inserted {len(rows)} fund_nav rows.")
+    for row_data in rows:
+        insert_account_status_row("trading212_daily_account", row_columns, row_data)
+
+    print(f"Inserted {len(rows)} trading212_daily_account rows.")
     return len(rows)
 
 
@@ -160,7 +195,7 @@ def run_sync(cli_output_dir: str | None = None) -> int:
         if table is not None:
             statement_tables.append(table)
 
-    sync_fund_nav(statement_tables)
+    sync_account_status(statement_tables)
     sync_positions(candidate_pdfs[-1])
     return 0
 
