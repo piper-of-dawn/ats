@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Supabase Dashboard</title>
   <link rel="stylesheet" href="/static/css/dashboard.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="/static/vendor/chart.umd.min.js"></script>
+  <script defer src="/static/vendor/chartjs-chart-treemap.min.js"></script>
 </head>
 <body class="dashboard">
   <div class="dashboard-shell">
@@ -23,6 +24,36 @@
         <div class="loading-card-skeleton"></div>
       </div>
     </section>
+    <div class="exposure-grid">
+      <section
+        id="country-treemap-slot"
+        class="lazy-slot"
+        data-component-url="/partials/treemap/country"
+        data-component-kind="treemap"
+        data-component-label="Country Exposure"
+      >
+        <div class="card loading-card">
+          <div class="loading-card-label">Country Exposure</div>
+          <div class="loading-card-title">Loading positions treemap</div>
+          <div class="loading-card-skeleton loading-card-skeleton-lg"></div>
+          <div class="loading-card-skeleton"></div>
+        </div>
+      </section>
+      <section
+        id="currency-treemap-slot"
+        class="lazy-slot"
+        data-component-url="/partials/treemap/currency"
+        data-component-kind="treemap"
+        data-component-label="Currency Exposure"
+      >
+        <div class="card loading-card">
+          <div class="loading-card-label">Currency Exposure</div>
+          <div class="loading-card-title">Loading positions treemap</div>
+          <div class="loading-card-skeleton loading-card-skeleton-lg"></div>
+          <div class="loading-card-skeleton"></div>
+        </div>
+      </section>
+    </div>
     <div class="dashboard-grid">
       <div class="dashboard-main">
         <section
@@ -72,29 +103,33 @@
       return slot;
     };
 
-    const loadChartJs = async () => {
-      if (window.Chart) return window.Chart;
+    const loadChartLibraries = async () => {
+      const chartScript = document.querySelector('script[src="/static/vendor/chart.umd.min.js"]');
+      const treemapScript = document.querySelector('script[src="/static/vendor/chartjs-chart-treemap.min.js"]');
 
-      const chartScript = document.querySelector('script[src*="chart.umd.min.js"]');
-      if (chartScript?.dataset.ready === "true") {
+      if (window.Chart?.registry?.controllers?.get?.("treemap")) {
         return window.Chart;
       }
 
-      return new Promise((resolve, reject) => {
-        const onLoad = () => {
-          chartScript.dataset.ready = "true";
-          resolve(window.Chart);
-        };
-        const onError = () => reject(new Error("Chart library failed to load"));
-
-        if (!chartScript) {
-          reject(new Error("Chart library script is missing"));
+      const waitForScript = (script, errorMessage) => new Promise((resolve, reject) => {
+        if (!script) {
+          reject(new Error(errorMessage));
           return;
         }
 
-        chartScript.addEventListener("load", onLoad, {once: true});
-        chartScript.addEventListener("error", onError, {once: true});
+        const onReady = () => resolve();
+        const onError = () => reject(new Error(errorMessage));
+        script.addEventListener("load", onReady, {once: true});
+        script.addEventListener("error", onError, {once: true});
       });
+
+      if (!window.Chart) {
+        await waitForScript(chartScript, "Chart.js failed to load");
+      }
+      if (!window.Chart?.registry?.controllers?.get?.("treemap")) {
+        await waitForScript(treemapScript, "Chart.js treemap plugin failed to load");
+      }
+      return window.Chart;
     };
 
     const initNavChart = async (root) => {
@@ -107,7 +142,7 @@
 
       if (!canvas) return;
 
-      await loadChartJs();
+      await loadChartLibraries();
       if (!window.Chart) return;
 
       const allPoints = JSON.parse(canvas.dataset.points || "[]");
@@ -358,6 +393,112 @@
       }
     };
 
+    const formatTreemapValue = (value) => {
+      const amount = Number(value) || 0;
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2
+      }).format(amount);
+    };
+
+    const initTreemap = async (root) => {
+      const treemapRoot = root.querySelector(".treemap-root");
+      const canvas = root.querySelector(".treemap-canvas");
+      if (!treemapRoot || !canvas) return;
+
+      await loadChartLibraries();
+      if (!window.Chart?.registry?.controllers?.get?.("treemap")) return;
+
+      const items = JSON.parse(treemapRoot.dataset.items || "[]")
+        .map((item) => ({...item, value: Number(item.value) || 0}))
+        .filter((item) => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+      if (!items.length) return;
+      const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+      const labelThreshold = 0.03;
+      const getNodeLabel = (node) => node?.g || node?._data?.label || "";
+      const getNodeValue = (node) => Number(node?.v ?? node?.value ?? node?._data?.value ?? 0);
+      const getNodeShare = (node) => {
+        const value = getNodeValue(node);
+        return totalValue > 0 ? value / totalValue : 0;
+      };
+
+      const palette = [
+        "#1745f3",
+        "#1f7a8c",
+        "#c05621",
+        "#2f855a",
+        "#b83280",
+        "#805ad5",
+        "#975a16",
+        "#276749"
+      ];
+
+      const chart = new window.Chart(canvas, {
+        type: "treemap",
+        data: {
+          datasets: [{
+            tree: items,
+            key: "value",
+            groups: ["label"],
+            spacing: 2,
+            borderWidth: 1,
+            borderRadius: 14,
+            borderColor(context) {
+              const index = context.dataIndex ?? 0;
+              return palette[index % palette.length];
+            },
+            backgroundColor(context) {
+              const index = context.dataIndex ?? 0;
+              const hue = palette[index % palette.length];
+              return `${hue}22`;
+            },
+            labels: {
+              display: true,
+              color: "#1f2937",
+              font: {
+                family: "Segoe UI, Arial, sans-serif",
+                size: 12,
+                weight: "600"
+              },
+              formatter(context) {
+                const node = context.raw;
+                const label = getNodeLabel(node);
+                const share = getNodeShare(node);
+                if (!label || share < labelThreshold) return "";
+                return [label, `${(share * 100).toFixed(2)}%`];
+              }
+            }
+          }]
+        },
+        options: {
+          animation: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {display: false},
+            tooltip: {
+              displayColors: false,
+              backgroundColor: "rgba(34, 37, 41, 0.92)",
+              callbacks: {
+                title(items) {
+                  return getNodeLabel(items[0]?.raw);
+                },
+                label(context) {
+                  const node = context.raw;
+                  const value = getNodeValue(node);
+                  const share = getNodeShare(node);
+                  return `${formatTreemapValue(value)} (${(share * 100).toFixed(2)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      treemapRoot._chart = chart;
+    };
+
     const renderErrorState = (slot, error) => {
       slot.innerHTML = `
         <div class="card loading-card loading-card-error">
@@ -375,6 +516,9 @@
           await loadComponentMarkup(slot);
           if (slot.dataset.componentKind === "nav") {
             await initNavChart(slot);
+          }
+          if (slot.dataset.componentKind === "treemap") {
+            await initTreemap(slot);
           }
         } catch (error) {
           renderErrorState(slot, error);

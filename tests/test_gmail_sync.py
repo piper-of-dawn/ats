@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from ats.dataIO.statement_table import StatementTable
-from ats.gmail_sync import build_fund_nav_rows, get_candidate_pdfs
+from ats.gmail_sync import build_fund_nav_rows, get_candidate_pdfs, get_latest_pdf
 
 
 def test_get_candidate_pdfs_filters_out_existing_dates(tmp_path):
@@ -15,6 +15,18 @@ def test_get_candidate_pdfs_filters_out_existing_dates(tmp_path):
     candidate_pdfs = get_candidate_pdfs(tmp_path, "2026-03-15")
 
     assert candidate_pdfs == [newer]
+
+
+def test_get_latest_pdf_picks_most_recent_dated_statement(tmp_path):
+    older = tmp_path / "2026-03-15_old.pdf"
+    newer = tmp_path / "2026-03-16_new.pdf"
+    no_date = tmp_path / "statement.pdf"
+    for path in (older, newer, no_date):
+        path.write_bytes(b"")
+
+    latest_pdf = get_latest_pdf(tmp_path)
+
+    assert latest_pdf == newer
 
 
 def test_build_fund_nav_rows_keeps_latest_value_per_date():

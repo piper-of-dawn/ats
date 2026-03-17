@@ -1,0 +1,29 @@
+<div class="card panel treemap-panel">
+  <div class="meta">
+    <span>{{ title.upper() }}</span>
+    <span>TOTAL: {{ total_value }} | POSITIONS: {{ position_count }} | UPDATED: {{ updated_at }}</span>
+  </div>
+  {% if items %}
+  <div
+    class="treemap-root"
+    data-treemap-group="{{ group_by }}"
+    data-items='{{ items|tojson }}'
+  >
+    <div class="treemap-canvas-wrap">
+      <canvas class="treemap-canvas" aria-label="{{ title }}"></canvas>
+    </div>
+    <div class="treemap-legend">
+      {% for item in items[:6] %}
+      <div class="treemap-legend-item">
+        <span class="treemap-legend-label">{{ item.label }}</span>
+        <span class="treemap-legend-value">{{ item.share_pct }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="panel-placeholder">
+    <p>No positions data available for {{ title.lower() }}.</p>
+  </div>
+  {% endif %}
+</div>

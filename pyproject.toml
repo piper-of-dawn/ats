@@ -36,6 +36,7 @@ ats = "ats.cli:main"
 dashboard-local = "ats.dashboard:run"
 gmail-downloader = "ats.gmail_downloader:main"
 gmail-fund-nav-sync = "ats.gmail_sync:main"
+announce-fund-nav = "ats.announce_fund_nav:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

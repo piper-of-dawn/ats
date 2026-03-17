@@ -29,6 +29,11 @@ _DASHBOARD_PRIORITY_COLUMNS = (
     "representative_index_ticker",
 )
 
+_TREEMAP_DIMENSIONS = {
+    "country": "Country Exposure",
+    "currency": "Currency Exposure",
+}
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -44,6 +49,62 @@ def get_dashboard_context(table_name: str) -> dict:
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
         "as_of_date": selected_date,
+        "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+    }
+
+
+def get_positions_treemap_context(group_by: str) -> dict:
+    normalized_group = group_by.lower()
+    if normalized_group not in _TREEMAP_DIMENSIONS:
+        raise KeyError(f"Unsupported positions treemap dimension: {group_by}")
+
+    positions_df = fetch_table("positions", columns=[normalized_group, "value"])
+    if positions_df.is_empty():
+        return {
+            "group_by": normalized_group,
+            "title": _TREEMAP_DIMENSIONS[normalized_group],
+            "items": [],
+            "total_value": _format_currency(0.0),
+            "position_count": 0,
+            "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        }
+
+    label_column = _find_column_name(positions_df.columns, normalized_group)
+    value_column = _find_column_name(positions_df.columns, "value")
+
+    exposure_df = (
+        positions_df.select(
+            pl.col(label_column).cast(pl.Utf8, strict=False).alias("label"),
+            pl.col(value_column).cast(pl.Float64, strict=False).alias("value"),
+        )
+        .with_columns(pl.col("label").str.strip_chars().alias("label"))
+        .filter(
+            pl.col("label").is_not_null()
+            & (pl.col("label") != "")
+            & pl.col("value").is_not_null()
+        )
+        .group_by("label")
+        .agg(pl.col("value").sum().alias("value"))
+        .sort("value", descending=True)
+    )
+
+    total_value = float(exposure_df["value"].sum()) if not exposure_df.is_empty() else 0.0
+    items = [
+        {
+            "label": row["label"],
+            "value": round(float(row["value"]), 2),
+            "formatted_value": _format_currency(float(row["value"])),
+            "share_pct": _format_percent((float(row["value"]) / total_value) if total_value else 0.0),
+        }
+        for row in exposure_df.to_dicts()
+    ]
+
+    return {
+        "group_by": normalized_group,
+        "title": _TREEMAP_DIMENSIONS[normalized_group],
+        "items": items,
+        "total_value": _format_currency(total_value),
+        "position_count": positions_df.height,
         "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
     }
 
@@ -202,4 +263,13 @@ def _format_signed_percent(value: float) -> str:
     sign = "+" if value >= 0 else "-"
     return f"{sign}{abs(value) * 100:,.2f}%"
 
-__all__ = ["UndefinedTable", "get_dashboard_context", "get_nav_context"]
+
+def _format_percent(value: float) -> str:
+    return f"{value * 100:,.2f}%"
+
+__all__ = [
+    "UndefinedTable",
+    "get_dashboard_context",
+    "get_nav_context",
+    "get_positions_treemap_context",
+]

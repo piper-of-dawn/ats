@@ -12,8 +12,6 @@ from ats.dataIO.statement_table import StatementTable, parse_statement_table
 from ats.gmail_downloader import download_pdfs
 from ats.dataIO.supabase_integration import (
     _connect,
-    batch_insert,
-    delete_all_rows,
     fetch_recent_dates,
     get_table_columns,
 )
@@ -35,7 +33,7 @@ def parse_args():
 
 
 def get_latest_fund_nav_date() -> str | None:
-    dates = fetch_recent_dates("trading212_daily_account", limit=1)
+    dates = fetch_recent_dates("fund_nav", limit=1)
     return dates[0] if dates else None
 
 
@@ -68,6 +66,18 @@ def get_candidate_pdfs(output_dir: Path, after_date: str | None) -> list[Path]:
             continue
         candidates.append(pdf_path)
     return candidates
+
+
+def get_latest_pdf(output_dir: Path) -> Path | None:
+    dated_pdfs = []
+    for pdf_path in sorted(output_dir.glob("*.pdf")):
+        pdf_date = extract_pdf_date(pdf_path)
+        if pdf_date is None:
+            continue
+        dated_pdfs.append((pdf_date, pdf_path))
+    if not dated_pdfs:
+        return None
+    return max(dated_pdfs, key=lambda item: (item[0], item[1].name))[1]
 
 
 def build_account_status_rows(
@@ -183,22 +193,51 @@ def sync_positions(latest_pdf: Path) -> int:
     if not rows:
         return 0
 
-    delete_all_rows("positions")
-    batch_insert("positions", columns, rows)
+    assignments = sql.SQL(", ").join(
+        sql.SQL("{} = EXCLUDED.{}").format(
+            sql.Identifier(column),
+            sql.Identifier(column),
+        )
+        for column in columns
+        if column.lower() != "isin"
+    )
+    insert_query = sql.SQL(
+        "INSERT INTO {} ({}) VALUES ({}) "
+        "ON CONFLICT ({}) DO UPDATE SET {}"
+    ).format(
+        sql.Identifier("positions"),
+        sql.SQL(", ").join(sql.Identifier(column) for column in columns),
+        sql.SQL(", ").join(sql.Placeholder() for _ in columns),
+        sql.Identifier("isin"),
+        assignments,
+    )
+    delete_query = sql.SQL("DELETE FROM {}").format(sql.Identifier("positions"))
+
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(delete_query)
+            cur.executemany(insert_query, rows)
+        conn.commit()
+
     print(f"Replaced positions table with {len(rows)} rows from {latest_pdf.name}.")
     return len(rows)
 
 
 def run_sync(cli_output_dir: str | None = None) -> int:
     latest_date = get_latest_fund_nav_date()
-    print(f"Latest trading212_daily_account date: {latest_date or 'none'}")
+    print(f"Latest fund_nav date: {latest_date or 'none'}")
 
     run_gmail_downloader(latest_date)
 
     output_dir = get_output_dir(cli_output_dir)
     candidate_pdfs = get_candidate_pdfs(output_dir, latest_date)
+    latest_pdf = get_latest_pdf(output_dir)
     if not candidate_pdfs:
         print("No new PDFs found after download.")
+        if latest_pdf is None:
+            return 0
+        print(f"Refreshing positions from latest available PDF: {latest_pdf.name}")
+        sync_positions(latest_pdf)
         return 0
 
     statement_tables = []
@@ -208,7 +247,7 @@ def run_sync(cli_output_dir: str | None = None) -> int:
             statement_tables.append(table)
 
     sync_account_status(statement_tables)
-    sync_positions(candidate_pdfs[-1])
+    sync_positions(latest_pdf or candidate_pdfs[-1])
     return 0
 
 
