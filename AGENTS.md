@@ -4,7 +4,7 @@
 This repo has two related concerns:
 - Factor computation pipeline (Python package under `src/ats`)
 - Gmail-driven Trading 212 PDF ingestion for `fund_nav` and `positions`
-- Lightweight dashboard deployment on Vercel (`api/index.py`)
+- Lightweight dashboard deployment on Vercel (`dashboard/index.py`)
 
 The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 
@@ -24,8 +24,8 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
   - Runs `gmail-downloader [YYYY-MM-DD]`.
   - Parses new PDFs and refreshes `fund_nav` plus `positions`.
 - `src/ats/dashboard.py`: local Flask dashboard app (package-level app).
-- `api/index.py`: Vercel Flask function for production dashboard deployment.
-- `api/requirements.txt`: Vercel-only minimal Python dependencies.
+- `dashboard/index.py`: Vercel Flask function entrypoint for production dashboard deployment.
+- `dashboard/requirements.txt`: Vercel-only minimal Python dependencies.
 - `tests/test_run_jobs_integration.py`: integration test for `run_jobs` write+cleanup behavior.
 
 ## Data Flow
@@ -70,8 +70,8 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 - Gmail runtime state should live in a Jenkins-managed host path such as `/var/lib/jenkins/ats-gmail`, with persistent `config/token.json`, `output/.state.json`, and downloaded PDFs mounted into the container.
 
 ## Vercel Deployment Notes
-- Vercel config is in `vercel.json` and targets `api/index.py` with `@vercel/python`.
-- Keep Vercel deps minimal in `api/requirements.txt`.
+- Vercel config is in `vercel.json` and targets `dashboard/index.py` with `@vercel/python`.
+- Keep Vercel deps minimal in `dashboard/requirements.txt`.
 - `.vercelignore` excludes backend-heavy files (including `uv.lock`, `pyproject.toml`) so Vercel does not install full backend deps.
 
 ## Environment Variables
@@ -108,7 +108,7 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
   - Persists attachment dedupe state by `messageId:attachmentId` in `STATE_FILE`.
   - Names downloads like `YYYY-MM-DD_<message-prefix>_<filename>.pdf`.
 
-### Vercel dashboard (`api/index.py`)
+### Vercel dashboard (`dashboard/index.py`)
 Connection priority:
 1. `SUPABASE_DB_URL`
 2. `DATABASE_URL`
@@ -116,7 +116,7 @@ Connection priority:
 4. `POSTGRES_URL_NON_POOLING`
 5. Fallback host/user/password using `SUPABASE_PASSWORD`
 
-`api/index.py` sanitizes DSN query params before connecting to avoid psycopg URI parsing issues.
+`dashboard/index.py` imports the Flask app from `dashboard.app` for Vercel deployment.
 
 ## Known Gotchas
 - Supabase pooler + prepared statements can trigger `DuplicatePreparedStatement`.
@@ -133,7 +133,7 @@ Connection priority:
 - `BUILD_STATE_DIR` and any runtime env file path used by Jenkins must be writable/readable by the `jenkins` user.
 
 ## Conventions for Future Changes
-- Keep Vercel function isolated and minimal; avoid importing heavy package modules there.
+- Keep the Vercel entrypoint isolated and minimal; avoid adding heavy logic there.
 - Keep SQL table names identifier-safe using `psycopg.sql.Identifier`.
 - For integration tests that write rows, always clean up in `finally`.
 - Prefer adding small, explicit functions over broad module-level side effects.

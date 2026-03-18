@@ -1,7 +1,6 @@
 <div class="card panel">
-  <div class="meta">
-    <span>TABLE: {{ table_name }}</span>
-    <span>AS OF DATE: {{ as_of_date or "N/A" }} | ROWS: {{ rows|length }} | UPDATED: {{ updated_at }}</span>
+  <div class="table-card-header">
+    <div class="table-card-title">{{ display_title }}</div>
   </div>
   <div class="table-wrap desktop-table">
     <table>

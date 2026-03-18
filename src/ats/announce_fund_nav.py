@@ -90,7 +90,10 @@ def normalize_source_rows(df: pl.DataFrame) -> pl.DataFrame:
             pl.col("deposits").cast(pl.Float64, strict=False).fill_null(0.0),
             pl.col("withdrawals").cast(pl.Float64, strict=False).fill_null(0.0),
         )
-        .with_columns((pl.col("deposits") - pl.col("withdrawals")).alias("cashflow"))
+        .with_columns(
+            # Trading 212 statement withdrawals are already negative amounts.
+            (pl.col("deposits") + pl.col("withdrawals")).alias("cashflow")
+        )
         .sort("date")
         .group_by("date", maintain_order=True)
         .agg(
@@ -102,11 +105,38 @@ def normalize_source_rows(df: pl.DataFrame) -> pl.DataFrame:
     return normalized.select("date", "account_value", "cashflow")
 
 
+def build_seed_state(
+    nav: float | None,
+    units: float | None,
+    account_value: float | None,
+) -> tuple[FundState, float]:
+    if nav is None:
+        return FundState(), 10.0
+
+    nav_value = float(nav)
+    if nav_value == 0:
+        raise ValueError("Latest fund_nav row has nav=0, cannot seed incremental units.")
+
+    if units is not None:
+        return FundState(last_units=float(units), last_nav=nav_value), nav_value
+
+    if account_value is None:
+        raise ValueError(
+            "Latest fund_nav row has neither units nor matching trading212_daily_account.account_value to seed units."
+        )
+
+    account_value_float = float(account_value)
+    return FundState(last_units=account_value_float / nav_value, last_nav=nav_value), nav_value
+
+
 def fetch_latest_fund_nav_seed() -> tuple[FundState, float]:
+    fund_nav_columns = {column.lower(): column for column in get_table_columns("fund_nav")}
+    units_column = fund_nav_columns.get("units")
     query = """
         select
             f.date,
             f.nav,
+            {units_select} as units,
             t.account_value
         from fund_nav f
         left join (
@@ -119,7 +149,9 @@ def fetch_latest_fund_nav_seed() -> tuple[FundState, float]:
         ) t on t.date = f.date
         order by f.date desc
         limit 1
-    """
+    """.format(
+        units_select=units_column if units_column else "NULL"
+    )
     with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(query)
@@ -128,20 +160,8 @@ def fetch_latest_fund_nav_seed() -> tuple[FundState, float]:
     if row is None:
         return FundState(), 10.0
 
-    _, nav, account_value = row
-    if nav is None:
-        return FundState(), 10.0
-    if account_value is None:
-        raise ValueError(
-            "Latest fund_nav row has no matching trading212_daily_account.account_value to seed units."
-        )
-
-    nav_value = float(nav)
-    account_value_float = float(account_value)
-    if nav_value == 0:
-        raise ValueError("Latest fund_nav row has nav=0, cannot seed incremental units.")
-
-    return FundState(last_units=account_value_float / nav_value, last_nav=nav_value), nav_value
+    _, nav, units, account_value = row
+    return build_seed_state(nav=nav, units=units, account_value=account_value)
 
 
 def compute_missing_fund_nav_rows(after_date: str | None) -> pl.DataFrame:

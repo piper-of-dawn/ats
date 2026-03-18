@@ -1,24 +1,39 @@
 <section class="card nav-card">
   <div class="nav-card-header">
-    <div>
+    <div class="nav-card-header-primary">
       <div class="nav-card-title">Fund NAV</div>
+      <div class="nav-card-header-metric">
+        <div class="nav-card-header-value">{{ nav_context.latest_nav }}</div>
+        <div class="nav-card-header-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
+          {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
+        </div>
+        <div class="nav-card-header-stamp">As of {{ nav_context.latest_date }}</div>
+      </div>
+    </div>
+    <div>
       <div class="nav-card-subtitle">Daily fund NAV history</div>
     </div>
   </div>
-  <div class="nav-card-quote-strip">
-    <div class="nav-card-quote nav-card-quote-primary">
-      <div class="nav-card-price">{{ nav_context.latest_nav }}</div>
-      <div class="nav-card-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
-        {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
-      </div>
-      <div class="nav-card-stamp">As of {{ nav_context.latest_date }}</div>
+  <div class="nav-metric-grid">
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Range Return</div>
+      <div id="nav-metric-return" class="nav-metric-value">--</div>
+      <div id="nav-metric-return-detail" class="nav-metric-detail">Selected range</div>
     </div>
-    <div class="nav-card-quote nav-card-quote-secondary">
-      <div class="nav-card-price">{{ nav_context.previous_nav }}</div>
-      <div class="nav-card-change negative">
-        Reference {{ nav_context.reference_nav }}
-      </div>
-      <div class="nav-card-stamp">Previous close {{ nav_context.previous_date }}</div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Volatility</div>
+      <div id="nav-metric-vol" class="nav-metric-value">--</div>
+      <div class="nav-metric-detail">Annualized daily</div>
+    </div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Hit Ratio</div>
+      <div id="nav-metric-hit" class="nav-metric-value">--</div>
+      <div id="nav-metric-hit-detail" class="nav-metric-detail">Positive periods</div>
+    </div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Current Drawdown</div>
+      <div id="nav-metric-dd" class="nav-metric-value">--</div>
+      <div class="nav-metric-detail">From peak</div>
     </div>
   </div>
   <div class="nav-card-toolbar">
@@ -31,28 +46,15 @@
         <button type="button" data-range="1D">1D</button>
         <button type="button" data-range="5D">5D</button>
         <button type="button" data-range="1M">1M</button>
-        <button type="button" data-range="6M">6M</button>
         <button type="button" data-range="YTD">YTD</button>
-        <button type="button" data-range="1Y">1Y</button>
-        <button type="button" data-range="5Y">5Y</button>
-        <button type="button" data-range="MAX">MAX</button>
       </div>
     </div>
   </div>
   <div class="nav-chart-wrap">
-    <canvas
+    <div
       id="nav-chart"
+      class="nav-chart"
       data-points='{{ nav_context.chart_points|tojson }}'
-    ></canvas>
-  </div>
-  <div class="nav-stats">
-    <div class="nav-stat">
-      <span class="nav-stat-label">Max Drawdown</span>
-      <span id="nav-max-drawdown" class="nav-stat-value negative">{{ nav_context.max_drawdown }}</span>
-    </div>
-    <div class="nav-stat">
-      <span class="nav-stat-label">Max Upside</span>
-      <span id="nav-max-upside" class="nav-stat-value positive">{{ nav_context.max_upside }}</span>
-    </div>
+    ></div>
   </div>
 </section>

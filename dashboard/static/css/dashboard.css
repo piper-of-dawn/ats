@@ -1,11 +1,11 @@
 :root {
-  --card: #ffffff;
+  --card: #f1e8dc;
   --line: #e6e8ec;
   --text: #1f2937;
   --muted: #6b7280;
   --accent: #1f5fae;
   --ink-blue: #1745f3;
-  --nav-bg: #fbfaf6;
+  --nav-bg: #f1e8dc;
   --nav-line: #e4ddd2;
   --nav-positive: var(--ink-blue);
   --nav-negative: #b34b4b;
@@ -68,42 +68,44 @@ body.dashboard .card {
 }
 
 .dashboard-grid {
-  max-width: 1280px;
-  margin: 0 auto;
-  display: flex;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
-  align-items: flex-start;
 }
 
 .dashboard-main {
-  flex: 1 1 68%;
   min-width: 0;
-  display: grid;
-  gap: 24px;
 }
 
 .dashboard-side {
-  flex: 0 0 320px;
+  min-width: 0;
 }
 
 .dashboard-shell {
-  max-width: 1280px;
+  width: min(100%, 1600px);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .lazy-slot {
   width: 100%;
+  min-width: 0;
 }
 
 .exposure-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 24px;
-  margin-bottom: 24px;
+}
+
+.exposure-grid > .lazy-slot {
+  flex: 1 1 360px;
 }
 
 .nav-card {
-  margin-bottom: 24px;
   background: var(--nav-bg);
   border-radius: 18px;
   border-color: rgba(23, 69, 243, 0.3);
@@ -116,26 +118,69 @@ body.dashboard .card {
 .nav-card-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
   padding: 16px 18px;
   border-bottom: 1px solid var(--nav-line);
 }
 
+.nav-card-header-primary {
+  min-width: 0;
+}
+
+.nav-card-header-metric {
+  text-align: left;
+  min-width: 0;
+  margin-top: 10px;
+}
+
+.nav-card-header-value {
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 3rem;
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  color: #183fb9;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "liga" 0;
+}
+
+.nav-card-header-change {
+  margin-top: 10px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "liga" 0;
+}
+
+.nav-card-header-stamp {
+  margin-top: 8px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #6f86de;
+}
+
 .nav-card-title {
-  font-size: 2rem;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #6f86de;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  text-transform: uppercase;
 }
 
 .nav-card-subtitle {
   margin-top: 4px;
-  font-size: 13px;
-  color: #857b6c;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #8aa0ee;
 }
 
 .nav-card-toolbar button {
   border: 1px solid #ddd5c9;
-  background: rgba(255, 255, 255, 0.8);
+  background: #f1e8dc;
   color: #5e5a54;
   border-radius: 12px;
   padding: 8px 14px;
@@ -150,6 +195,10 @@ body.dashboard .card {
 
 .nav-card-quote {
   padding: 14px 18px 16px;
+}
+
+.nav-card-quote-primary {
+  min-height: 54px;
 }
 
 .nav-card-quote-secondary {
@@ -189,6 +238,57 @@ body.dashboard .card {
   padding: 12px 18px 0;
 }
 
+.nav-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px 18px 0;
+}
+
+.nav-metric-card {
+  padding: 14px 14px 12px;
+  border: 1px solid rgba(23, 69, 243, 0.22);
+  border-radius: 16px;
+  background: #f1e8dc;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 10px 20px rgba(23, 69, 243, 0.04);
+}
+
+.nav-metric-label {
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #6f86de;
+}
+
+.nav-metric-value {
+  margin-top: 8px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 1.32rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #183fb9;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-metric-value.negative {
+  color: #b42318;
+}
+
+.nav-metric-value.positive {
+  color: #183fb9;
+}
+
+.nav-metric-detail {
+  margin-top: 8px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #8aa0ee;
+}
+
 .nav-range-picker {
   position: relative;
   display: inline-block;
@@ -200,7 +300,7 @@ body.dashboard .card {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: #efe8db;
+  background: #f1e8dc;
 }
 
 .nav-range-caret {
@@ -252,10 +352,155 @@ body.dashboard .card {
   opacity: 0.8;
 }
 
-.nav-chart-wrap canvas {
+.nav-chart {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
   background: transparent;
+}
+
+.nav-chart-svg,
+.treemap-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.nav-axis text,
+.treemap-label,
+.treemap-value,
+.nav-average-label-text {
+  fill: #5f78d6;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-axis path,
+.nav-axis line {
+  stroke: none;
+}
+
+.nav-grid line {
+  stroke: rgba(122, 115, 105, 0.46);
+  stroke-dasharray: 2 5;
+}
+
+.nav-grid path {
+  stroke: none;
+}
+
+.nav-average-line {
+  stroke: rgba(145, 135, 120, 0.6);
+  stroke-dasharray: 5 4;
+}
+
+.nav-average-label-bg {
+  fill: rgba(240, 235, 226, 0.9);
+}
+
+.nav-average-label-text {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  fill: #6b82dd;
+}
+
+.nav-hover-line {
+  stroke: rgba(145, 135, 120, 0.32);
+  stroke-dasharray: 4 4;
+}
+
+.nav-focus-dot {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, calc(-100% - 12px));
+  background: rgba(34, 37, 41, 0.92);
+  color: #dbe5ff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+  transition: opacity 120ms ease;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.chart-tooltip.is-visible {
+  opacity: 1;
+}
+
+.chart-annotation-group .annotation-note-title,
+.chart-annotation-group .annotation-note-label,
+.chart-annotation-group .annotation text {
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.chart-annotation-group .annotation-note-title {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #e11d48;
+}
+
+.chart-annotation-group .annotation-note-label {
+  font-size: 11px;
+  fill: #e11d48;
+}
+
+.chart-annotation-group .annotation path,
+.chart-annotation-group .annotation line {
+  stroke-width: 1.4;
+  stroke: #e11d48;
+}
+
+.chart-annotation-group .annotation-note-bg {
+  fill: transparent;
+}
+
+.nav-axis-x text,
+.nav-axis-y text {
+  fill: #7e95ea;
+  font-weight: 500;
+  opacity: 1;
+}
+
+.nav-y-labels text {
+  fill: #4f67c8;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-axis-y text {
+  font-size: 11px;
+}
+
+.nav-axis-x text {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.nav-y-label {
+  fill: #4f67c8;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .nav-stats {
@@ -288,57 +533,159 @@ body.dashboard .card {
   width: 100%;
 }
 
+.table-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(23, 69, 243, 0.08);
+}
+
+.table-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #6f86de;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.table-card-subtitle {
+  margin-top: 4px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #6f86de;
+}
+
+.table-card-badge {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(23, 69, 243, 0.12);
+  border-radius: 999px;
+  background: rgba(23, 69, 243, 0.05);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #4f67c8;
+  text-transform: uppercase;
+}
+
 .treemap-panel {
   min-height: 420px;
+  height: 420px;
+  overflow: visible;
+  background: #f1e8dc;
+  border-color: rgba(23, 69, 243, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(23, 69, 243, 0.04),
+    0 18px 36px rgba(23, 69, 243, 0.08);
 }
 
 .treemap-root {
-  display: grid;
-  grid-template-rows: minmax(320px, 1fr) auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-height: 360px;
+  height: calc(100% - 48px);
+  overflow: visible;
 }
 
 .treemap-canvas-wrap {
   position: relative;
   min-height: 320px;
-  padding: 14px;
-  background:
-    linear-gradient(135deg, rgba(23, 69, 243, 0.04), rgba(255, 255, 255, 0.8)),
-    radial-gradient(circle at top right, rgba(23, 69, 243, 0.08), transparent 32%);
+  flex: 0 0 52%;
+  padding: 20px 14px 20px 20px;
+  background: transparent;
 }
 
 .treemap-canvas {
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
+}
+
+.treemap-node rect {
+  stroke-width: 1;
+}
+
+.treemap-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #1f2937;
+}
+
+.treemap-value {
+  font-size: 11px;
+  font-weight: 500;
+  fill: #4b5563;
+}
+
+.donut-center-label,
+.donut-center-value {
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  fill: #1f2937;
+}
+
+.donut-center-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: #6f86de;
+}
+
+.donut-center-value {
+  font-size: 14px;
+  font-weight: 600;
+  fill: #183fb9;
 }
 
 .treemap-legend {
+  flex: 1 1 48%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 16px 16px;
-  border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), #ffffff);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 18px;
+  padding: 18px 22px 18px 8px;
+  border-top: 0;
+  background: transparent;
+  align-content: start;
 }
 
 .treemap-legend-item {
-  padding-top: 14px;
+  position: relative;
+  padding-left: 18px;
+}
+
+.treemap-legend-item::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--legend-swatch, #f5f5f4);
 }
 
 .treemap-legend-label {
   display: block;
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: var(--muted);
-  text-transform: uppercase;
+  color: #6f86de;
+  text-transform: none;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 .treemap-legend-value {
   display: block;
-  margin-top: 4px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #183fb9;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 .panel-header {
@@ -413,10 +760,11 @@ body.dashboard .card {
   display: flex;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(23, 69, 243, 0.08);
   font-size: 12px;
-  color: var(--muted);
+  color: rgba(31, 41, 55, 0.62);
   letter-spacing: 0.02em;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 .controls {
@@ -449,6 +797,10 @@ body.dashboard .card {
   overflow-x: auto;
 }
 
+.table-wrap table {
+  background: transparent;
+}
+
 .mobile-table {
   display: none;
 }
@@ -457,27 +809,33 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  color: #183fb9;
 }
 
 thead th {
   text-align: left;
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: var(--muted);
-  background: #fafbfc;
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
+  color: #6f86de;
+  background: #f1e8dc;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(23, 69, 243, 0.08);
   white-space: nowrap;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 tbody td {
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(23, 69, 243, 0.06);
   white-space: nowrap;
+  color: #183fb9;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
 }
 
 tbody tr:hover {
-  background: #f9fbff;
+  background: rgba(23, 69, 243, 0.05);
 }
 
 td.status {
@@ -487,15 +845,14 @@ td.status {
 
 @media (max-width: 980px) {
   .dashboard-grid {
-    flex-direction: column;
-  }
-
-  .exposure-grid {
     grid-template-columns: 1fr;
   }
 
+  .exposure-grid {
+    flex-direction: column;
+  }
+
   .dashboard-side {
-    flex-basis: auto;
     width: 100%;
   }
 
@@ -545,6 +902,10 @@ td.status {
     flex-direction: column;
   }
 
+  .nav-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .nav-chart-wrap {
     height: 300px;
   }
@@ -558,15 +919,20 @@ td.status {
   }
 
   .treemap-root {
-    grid-template-rows: minmax(280px, 1fr) auto;
+    flex-direction: column;
     min-height: 0;
   }
 
   .treemap-canvas-wrap {
     min-height: 280px;
+    flex-basis: auto;
+    width: 100%;
+    padding: 18px 18px 8px;
   }
 
   .treemap-legend {
+    width: 100%;
+    padding: 8px 18px 18px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -598,36 +964,41 @@ td.status {
   }
 
   .mobile-row[open] .mobile-row-summary {
-    background: #f9fbff;
+    background: rgba(23, 69, 243, 0.05);
   }
 
   .mobile-cell {
     min-width: 0;
   }
 
-  .mobile-cell-label,
-  .mobile-detail-label {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-  }
+.mobile-cell-label,
+.mobile-detail-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #6f86de;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
 
-  .mobile-cell-value,
-  .mobile-detail-value {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-  }
+.mobile-cell-value,
+.mobile-detail-value {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #183fb9;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
+}
 
   .mobile-row-details {
     display: grid;
     gap: 12px;
     padding: 0 16px 16px;
-    background: #f9fbff;
+    background: rgba(23, 69, 243, 0.05);
   }
 
   .mobile-detail-item {
@@ -642,12 +1013,17 @@ td.status {
 }
 
 @media (max-width: 480px) {
+  .nav-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
   .mobile-row-summary {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
   .treemap-legend {
+    gap: 14px;
     grid-template-columns: 1fr;
   }
 }

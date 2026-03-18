@@ -34,6 +34,11 @@ _TREEMAP_DIMENSIONS = {
     "currency": "Currency Exposure",
 }
 
+_TABLE_TITLES = {
+    "us_largecap_metrics": "US Large Cap Highlights",
+    "us_midcap_metrics": "US Midcap Highlights",
+}
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -44,6 +49,7 @@ def get_dashboard_context(table_name: str) -> dict:
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
         "table_name": table_name,
+        "display_title": _TABLE_TITLES.get(table_name, table_name.replace("_", " ").title()),
         "columns": columns,
         "rows": rows_df.to_dicts(),
         "mobile_primary_columns": mobile_primary_columns,
@@ -251,12 +257,12 @@ def _format_header_date(value: date | datetime | str) -> str:
 
 
 def _format_currency(value: float) -> str:
-    return f"${value:,.2f}"
+    return f"€{value:,.2f}"
 
 
 def _format_signed_currency(value: float) -> str:
     sign = "+" if value >= 0 else "-"
-    return f"{sign}${abs(value):,.2f}"
+    return f"{sign}€{abs(value):,.2f}"
 
 
 def _format_signed_percent(value: float) -> str:
