@@ -1,14 +1,16 @@
 (function () {
-  const palette = [
-    "#1745f3",
-    "#4f73ff",
-    "#8fafff",
-    "#2f56f7",
-    "#6f90ff",
-    "#b1c6ff",
-  ];
-  const inactiveTick = "rgba(255, 255, 255, 0.12)";
-  const inactiveStroke = "rgba(255, 255, 255, 0.08)";
+  const getThemePalette = () => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const primary = rootStyle.getPropertyValue("--value-strong").trim() || "#f3ede2";
+    const secondary = rootStyle.getPropertyValue("--label-strong").trim() || "#dad1c7";
+    const tertiary = rootStyle.getPropertyValue("--label-soft").trim() || "#a89d91";
+    const accent = rootStyle.getPropertyValue("--accent").trim() || "#d9d1c5";
+    return [primary, secondary, tertiary, accent, primary, secondary];
+  };
+
+  const getThemeValue = (name, fallback) => (
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+  );
 
   const formatCurrency = (value) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -17,6 +19,7 @@
   }).format(Number(value) || 0);
 
   const createTooltip = (container) => {
+    container.querySelectorAll(".chart-tooltip").forEach((tooltipNode) => tooltipNode.remove());
     const tooltip = document.createElement("div");
     tooltip.className = "chart-tooltip";
     container.appendChild(tooltip);
@@ -35,9 +38,17 @@
       .sort((a, b) => b.value - a.value);
     if (!items.length) return;
 
+    if (root.__treemapChartState) {
+      root.__treemapChartState.draw();
+      return;
+    }
+
     const tooltip = createTooltip(container.parentElement);
 
     const draw = () => {
+      const palette = getThemePalette();
+      const inactiveTick = getThemeValue("--line", "rgba(255, 255, 255, 0.12)");
+      const inactiveStroke = getThemeValue("--table-border-softer", "rgba(255, 255, 255, 0.08)");
       container.innerHTML = "";
 
       const rect = container.getBoundingClientRect();
@@ -155,27 +166,29 @@
       root.querySelectorAll(".treemap-legend-item").forEach((itemNode) => {
         const index = Number(itemNode.dataset.legendIndex || 0);
         const item = displayedItems[index];
-        itemNode.addEventListener("mouseenter", (event) => {
+        itemNode.onmouseenter = (event) => {
           if (!item) return;
           setGroupHover(index, true);
           showTooltip(event, item);
-        });
-        itemNode.addEventListener("mousemove", (event) => {
+        };
+        itemNode.onmousemove = (event) => {
           if (!item) return;
           showTooltip(event, item);
-        });
-        itemNode.addEventListener("mouseleave", () => {
+        };
+        itemNode.onmouseleave = () => {
           setGroupHover(index, false);
           hideTooltip();
-        });
+        };
       });
     };
 
+    root.__treemapChartState = { draw };
     draw();
 
     if (window.ResizeObserver) {
-      const observer = new ResizeObserver(() => draw());
-      observer.observe(container);
+      root.__treemapResizeObserver?.disconnect?.();
+      root.__treemapResizeObserver = new ResizeObserver(() => draw());
+      root.__treemapResizeObserver.observe(container);
     }
   };
 

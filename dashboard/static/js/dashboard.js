@@ -1,4 +1,46 @@
 (function () {
+  const THEME_STORAGE_KEY = "dashboard-theme";
+
+  const getTheme = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
+
+  const setTheme = (theme) => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  };
+
+  const updateThemeToggle = () => {
+    const button = document.querySelector("#theme-toggle");
+    if (!button) return;
+    const theme = getTheme();
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    button.dataset.theme = theme;
+    button.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
+  };
+
+  const rerenderCharts = async () => {
+    const slots = Array.from(document.querySelectorAll(".lazy-slot"));
+    for (const slot of slots) {
+      if (slot.dataset.componentKind === "nav") {
+        await window.DashboardCharts?.initNavChart?.(slot);
+      }
+      if (slot.dataset.componentKind === "treemap") {
+        await window.DashboardCharts?.initTreemap?.(slot);
+      }
+    }
+  };
+
+  const initThemeToggle = () => {
+    const button = document.querySelector("#theme-toggle");
+    if (!button) return;
+    updateThemeToggle();
+    button.addEventListener("click", async () => {
+      const nextTheme = getTheme() === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+      updateThemeToggle();
+      await rerenderCharts();
+    });
+  };
+
   const waitForScript = async (src, errorMessage, predicate) => {
     if (predicate()) return;
 
@@ -69,6 +111,7 @@
   };
 
   window.addEventListener("DOMContentLoaded", () => {
+    initThemeToggle();
     loadDashboardSequentially();
   });
 })();

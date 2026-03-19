@@ -5,6 +5,7 @@ from datetime import date
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from psycopg import sql
 
 from ats.dataIO.open_positions import parse_open_positions
@@ -29,7 +30,21 @@ def parse_args():
         default=None,
         help="Optional override for the directory that receives downloaded PDFs.",
     )
+    parser.add_argument(
+        "--env-file",
+        default=None,
+        help="Optional path to an env file to load before reading Gmail sync runtime settings.",
+    )
     return parser.parse_args()
+
+
+def load_runtime_env(env_file: str | None) -> None:
+    if not env_file:
+        return
+    env_path = Path(env_file).expanduser()
+    if not env_path.exists():
+        raise FileNotFoundError(f"Env file not found: {env_path}")
+    load_dotenv(env_path, override=False)
 
 
 def get_latest_fund_nav_date() -> str | None:
@@ -253,6 +268,7 @@ def run_sync(cli_output_dir: str | None = None) -> int:
 
 def main() -> int:
     args = parse_args()
+    load_runtime_env(args.env_file)
     return run_sync(args.output_dir)
 
 

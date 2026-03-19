@@ -7,7 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    (function () {
+      const storedTheme = window.localStorage.getItem("dashboard-theme");
+      const theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/dashboard-light.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script defer src="/static/vendor/d3-annotation.min.js"></script>
   <script defer src="/static/js/nav-chart.js"></script>
@@ -15,6 +23,18 @@
   <script defer src="/static/js/dashboard.js"></script>
 </head>
 <body class="dashboard">
+  <button
+    id="theme-toggle"
+    class="theme-toggle"
+    type="button"
+    aria-label="Switch color theme"
+    aria-live="polite"
+  >
+    <span class="theme-toggle-track">
+      <span class="theme-toggle-option">LIGHT</span>
+      <span class="theme-toggle-option">DARK</span>
+    </span>
+  </button>
   <div class="dashboard-shell">
     <section
       id="nav-slot"

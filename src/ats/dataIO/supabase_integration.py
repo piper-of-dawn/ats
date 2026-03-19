@@ -186,34 +186,35 @@ def fetch_top_rows_for_date(
     available_columns = get_table_columns(table_name)
     date_column = get_date_column_name(table_name)
     selected_columns = _normalize_requested_columns(available_columns, columns)
-    if date_column not in selected_columns:
-        selected_columns.append(date_column)
 
-    order_by = []
-    available_by_lower = {column.lower(): column for column in available_columns}
-    if "ltm" in available_by_lower:
-        order_by.append(
-            sql.SQL("{} desc nulls last").format(sql.Identifier(available_by_lower["ltm"]))
-        )
-    if "stm" in available_by_lower:
-        order_by.append(
-            sql.SQL("{} desc nulls last").format(sql.Identifier(available_by_lower["stm"]))
-        )
+    required_columns = {date_column, "ltm", "stm"}
+    for col in required_columns:
+        if col not in selected_columns:
+            selected_columns.append(col)
 
-    query = sql.SQL("select {columns} from {table} where cast({date_col} as date) = %s").format(
+    query = sql.SQL("""
+        WITH top_ltm AS (
+            SELECT {columns}
+            FROM {table}
+            WHERE CAST({date_col} AS DATE) = %s
+            ORDER BY ltm DESC NULLS LAST
+            LIMIT %s
+        )
+        SELECT {columns}
+        FROM top_ltm
+        ORDER BY stm DESC NULLS LAST
+    """).format(
         columns=sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
         table=sql.Identifier(table_name),
         date_col=sql.Identifier(date_column),
     )
-    if order_by:
-        query += sql.SQL(" order by {}").format(sql.SQL(", ").join(order_by))
-    query += sql.SQL(" limit %s")
 
     with _connect() as conn:
         with conn.cursor() as cur:
             cur.execute(query, (selected_date, limit))
             rows = cur.fetchall()
             result_columns = [desc[0] for desc in cur.description]
+
     return pl.DataFrame(rows, schema=result_columns, orient="row")
 
 
@@ -223,7 +224,12 @@ def empty_table_frame(table_name: str, columns: list[str] | None = None) -> pl.D
     return pl.DataFrame(schema=columns)
 
 
-def batch_insert(table_name: str, columns: list[str], data: list[tuple]):
+def batch_insert(
+    table_name: str,
+    columns: list[str],
+    data: list[tuple],
+    conflict_columns: list[str] | None = None,
+):
     if not data:
         return
     query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
@@ -231,6 +237,10 @@ def batch_insert(table_name: str, columns: list[str], data: list[tuple]):
         sql.SQL(", ").join(sql.Identifier(col) for col in columns),
         sql.SQL(", ").join(sql.Placeholder() for _ in columns),
     )
+    if conflict_columns:
+        query += sql.SQL(" ON CONFLICT ({}) DO NOTHING").format(
+            sql.SQL(", ").join(sql.Identifier(col) for col in conflict_columns)
+        )
     with _connect() as conn:
         with conn.cursor() as cur:
             cur.executemany(query, data)
@@ -275,9 +285,14 @@ def table_exists(table_name: str) -> bool:
             return cur.fetchone()[0]
 
 
-def batch_insert_polars_df(df, columns, table_name):
+def batch_insert_polars_df(df, columns, table_name, conflict_columns: list[str] | None = None):
     data = [tuple(row[col] for col in columns) for row in df.iter_rows(named=True)]
-    batch_insert(table_name=table_name, columns=list(columns), data=data)
+    batch_insert(
+        table_name=table_name,
+        columns=list(columns),
+        data=data,
+        conflict_columns=conflict_columns,
+    )
 
 def create_relation(schema: str, table_name: str):
     columns = [

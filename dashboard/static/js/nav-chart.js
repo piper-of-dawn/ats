@@ -1,7 +1,10 @@
 (function () {
-  const positiveColor = "#1745f3";
-  const negativeColor = "#b42318";
   const rangeDayMap = { "1D": 1, "5D": 5, "1M": 30, "6M": 183, "1Y": 365, "5Y": 1825 };
+
+  const getThemeColor = (name, fallback) => {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  };
 
   const formatCurrency = (value) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -139,6 +142,7 @@
   };
 
   const createTooltip = (container) => {
+    container.querySelectorAll(".chart-tooltip").forEach((tooltipNode) => tooltipNode.remove());
     const tooltip = document.createElement("div");
     tooltip.className = "chart-tooltip";
     container.appendChild(tooltip);
@@ -159,6 +163,13 @@
   const renderNavChart = (container, points, average, visibleTickLabels, tooltip) => {
     const d3 = window.d3;
     if (!d3) return;
+
+    const positiveColor = getThemeColor("--nav-positive", "#f3ede2");
+    const negativeColor = getThemeColor("--danger", "#b42318");
+    const positiveAreaStrong = getThemeColor("--nav-fill-positive-strong", "rgba(255, 255, 255, 0.08)");
+    const positiveAreaSoft = getThemeColor("--nav-fill-positive-soft", "rgba(255, 255, 255, 0.025)");
+    const negativeAreaSoft = getThemeColor("--nav-fill-negative-soft", "rgba(180, 35, 24, 0.035)");
+    const negativeAreaStrong = getThemeColor("--nav-fill-negative-strong", "rgba(180, 35, 24, 0.08)");
 
     container.innerHTML = "";
     if (!points.length) return;
@@ -255,10 +266,10 @@
       .attr("x2", 0)
       .attr("y1", margin.top)
       .attr("y2", margin.top + innerHeight);
-    areaGradient.append("stop").attr("offset", "0%").attr("stop-color", "rgba(23, 69, 243, 0.16)");
-    areaGradient.append("stop").attr("offset", `${averageStop}%`).attr("stop-color", "rgba(23, 69, 243, 0.05)");
-    areaGradient.append("stop").attr("offset", `${averageStop}%`).attr("stop-color", "rgba(180, 35, 24, 0.05)");
-    areaGradient.append("stop").attr("offset", "100%").attr("stop-color", "rgba(180, 35, 24, 0.16)");
+    areaGradient.append("stop").attr("offset", "0%").attr("stop-color", positiveAreaStrong);
+    areaGradient.append("stop").attr("offset", `${averageStop}%`).attr("stop-color", positiveAreaSoft);
+    areaGradient.append("stop").attr("offset", `${averageStop}%`).attr("stop-color", negativeAreaSoft);
+    areaGradient.append("stop").attr("offset", "100%").attr("stop-color", negativeAreaStrong);
 
     const curve = d3.curveBasis;
 
@@ -411,6 +422,11 @@
     }));
     if (!allPoints.length) return;
 
+    if (root.__navChartState) {
+      root.__navChartState.draw();
+      return;
+    }
+
     const tooltip = createTooltip(container.parentElement);
     let currentRange = "YTD";
 
@@ -426,22 +442,23 @@
       }
     };
 
+    root.__navChartState = { draw };
     draw();
 
     if (rangeButton && rangeMenu) {
-      rangeButton.addEventListener("click", () => {
+      rangeButton.onclick = () => {
         const expanded = rangeButton.getAttribute("aria-expanded") === "true";
         rangeButton.setAttribute("aria-expanded", String(!expanded));
         rangeMenu.hidden = expanded;
-      });
+      };
 
       rangeMenu.querySelectorAll("button[data-range]").forEach((button) => {
-        button.addEventListener("click", () => {
+        button.onclick = () => {
           currentRange = button.dataset.range || "YTD";
           draw();
           rangeButton.setAttribute("aria-expanded", "false");
           rangeMenu.hidden = true;
-        });
+        };
       });
 
       document.addEventListener("click", (event) => {
@@ -449,12 +466,13 @@
           rangeButton.setAttribute("aria-expanded", "false");
           rangeMenu.hidden = true;
         }
-      });
+      }, { passive: true });
     }
 
     if (window.ResizeObserver) {
-      const observer = new ResizeObserver(() => draw());
-      observer.observe(container);
+      root.__navResizeObserver?.disconnect?.();
+      root.__navResizeObserver = new ResizeObserver(() => draw());
+      root.__navResizeObserver.observe(container);
     }
   };
 

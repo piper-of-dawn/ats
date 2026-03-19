@@ -47,5 +47,10 @@ def run_jobs(jobs, table_name, as_of_date=None):
         .sort(["ltm", "stm"], descending=True)
         .with_columns(pl.lit(as_of_date).alias("as_of_date"))
     )
-    batch_insert_polars_df(df=df, columns=df.columns, table_name=f"{table_name}_metrics")
+    batch_insert_polars_df(
+        df=df,
+        columns=df.columns,
+        table_name=f"{table_name}_metrics",
+        conflict_columns=["ticker", "as_of_date"],
+    )
     return df
