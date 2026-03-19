@@ -35,6 +35,7 @@ dev = [
 ats = "ats.cli:main"
 dashboard-local = "ats.dashboard:run"
 gmail-downloader = "ats.gmail_downloader:main"
+trading212-gmail-sync = "ats.gmail_sync:main"
 gmail-fund-nav-sync = "ats.gmail_sync:main"
 announce-fund-nav = "ats.announce_fund_nav:main"
 

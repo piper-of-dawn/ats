@@ -99,7 +99,7 @@ EOF
                         -v "${GMAIL_RUNTIME_DIR}/output:/app/output" \
                         -v "${GMAIL_RUNTIME_DIR}/config:/app/config" \
                         -v "${GMAIL_RUNTIME_DIR}/secrets:/app/secrets:ro" \
-                        --entrypoint gmail-fund-nav-sync \
+                        --entrypoint trading212-gmail-sync \
                         "${IMAGE_NAME}:latest"
                 '''
             }

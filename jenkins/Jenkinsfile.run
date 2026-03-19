@@ -12,8 +12,10 @@ pipeline {
     parameters {
         string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
         string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run.')
-        string(name: 'ATS_COMMANDS', defaultValue: 'us_midcap, us_largecap', description: 'Comma-separated table names to run sequentially.')
         string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-daily', description: 'Prefix used for the transient docker container name.')
+    }
+    env {
+        ATS_COMMANDS="us_midcap, us_largecap, trading212-gmail-sync"
     }
 
     stages {

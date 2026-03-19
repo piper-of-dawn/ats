@@ -39,7 +39,7 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 ## Local Commands
 - Install/sync deps: `uv sync`
 - Run pipeline CLI: `uv run python main.py <table_name>` (or package CLI if configured)
-- Run Gmail sync locally: `uv run gmail-fund-nav-sync`
+- Run Gmail sync locally: `uv run trading212-gmail-sync`
 - Run local dashboard: `uv run dashboard-local`
 - Run tests: `uv run pytest -q`
 - Run integration test only: `uv run pytest tests/test_run_jobs_integration.py -q -rs`
