@@ -93,14 +93,15 @@ EOF
                     container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
 
                     docker run --rm \
-                        --name "${container_name}" \
-                        --env-file "${APP_ENV_FILE}" \
-                        --env-file "${GMAIL_RUNTIME_DIR}/gmail.env" \
-                        -v "${GMAIL_RUNTIME_DIR}/output:/app/output" \
-                        -v "${GMAIL_RUNTIME_DIR}/config:/app/config" \
-                        -v "${GMAIL_RUNTIME_DIR}/secrets:/app/secrets:ro" \
-                        --entrypoint sh -c "trading212-gmail-sync && announce-fund-nav" \
-                        "${IMAGE_NAME}:latest"
+                    --name ats-gmail-11 \
+                    --env-file /var/lib/jenkins/ats/app.env \
+                    --env-file /var/lib/jenkins/ats-gmail/gmail.env \
+                    -v /var/lib/jenkins/ats-gmail/output:/app/output \
+                    -v /var/lib/jenkins/ats-gmail/config:/app/config \
+                    -v /var/lib/jenkins/ats-gmail/secrets:/app/secrets:ro \
+                    --entrypoint sh \
+                    ats:latest \
+                    -c 'trading212-gmail-sync && announce-fund-nav'
                 '''
             }
         }
