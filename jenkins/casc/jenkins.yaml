@@ -1,0 +1,32 @@
+jenkins:
+  systemMessage: "ATS Jenkins managed by Configuration as Code"
+  numExecutors: 2
+  mode: NORMAL
+  disableRememberMe: false
+  markupFormatter: plainText
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_USERNAME:-admin}"
+          password: "${JENKINS_ADMIN_PASSWORD:-change-me}"
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "BUILD_STATE_DIR"
+            value: "${ATS_BUILD_STATE_DIR:-/var/lib/jenkins/ats-build}"
+          - key: "ATS_APP_ENV_FILE"
+            value: "${ATS_APP_ENV_FILE:-/var/lib/jenkins/ats/app.env}"
+          - key: "ATS_GMAIL_RUNTIME_DIR"
+            value: "${ATS_GMAIL_RUNTIME_DIR:-/var/lib/jenkins/ats-gmail}"
+
+unclassified:
+  location:
+    adminAddress: "${JENKINS_ADMIN_EMAIL:-jenkins@example.com}"
+    url: "${JENKINS_URL:-http://localhost:8080/}"
+
+jobs:
+  - file: /var/jenkins_home/casc/jobs/ats-jobs.groovy

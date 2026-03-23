@@ -1,3 +1,7 @@
+def rebuildRequired = false
+def currentCommit = ''
+def lastBuiltCommit = ''
+
 pipeline {
     agent any
 
@@ -8,14 +12,11 @@ pipeline {
 
     parameters {
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run pytest before building the image.')
-        booleanParam(name: 'DEPLOY_ENABLED', defaultValue: true, description: 'Deploy after a successful build on the deploy branch.')
-        string(name: 'DEPLOY_BRANCH', defaultValue: 'main', description: 'Branch allowed to update the local deployment.')
+        booleanParam(name: 'FORCE_REBUILD', defaultValue: false, description: 'Build even when the current main commit matches the last built commit.')
+        string(name: 'BUILD_BRANCH', defaultValue: 'main', description: 'Only this branch is allowed to build the local Docker image.')
         string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
-        string(name: 'DEPLOY_PATH', defaultValue: '/var/lib/jenkins/ats', description: 'Local directory that stores compose deployment files.')
-        string(name: 'DEPLOY_APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file mounted by docker compose.')
-        string(name: 'DEPLOY_CONTAINER_NAME', defaultValue: 'ats', description: 'Container name used by docker compose.')
-        string(name: 'DEPLOY_COMMANDS', defaultValue: 'us_midcap', description: 'Comma-separated table names run daily by the scheduler container.')
-        booleanParam(name: 'PRUNE_IMAGES', defaultValue: true, description: 'Prune dangling Docker images and build cache after deploy.')
+        string(name: 'BUILD_STATE_DIR', defaultValue: '/var/lib/jenkins/ats-build', description: 'Directory used to persist the last successfully built commit SHA.')
+        booleanParam(name: 'PRUNE_IMAGES', defaultValue: true, description: 'Prune dangling Docker images and build cache after a successful rebuild.')
     }
 
     stages {
@@ -30,12 +31,42 @@ pipeline {
                 sh 'uv --version'
                 sh 'just --version'
                 sh 'docker --version'
-                sh 'docker compose version'
                 sh 'docker info >/dev/null'
             }
         }
 
+        stage('Check Main Commit') {
+            when {
+                expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+            }
+            steps {
+                script {
+                    currentCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                    sh 'mkdir -p "${BUILD_STATE_DIR}"'
+                    def stampFile = "${params.BUILD_STATE_DIR}/${params.IMAGE_NAME}.last_built_commit"
+                    lastBuiltCommit = sh(
+                        script: "[ -f '${stampFile}' ] && cat '${stampFile}' || true",
+                        returnStdout: true,
+                    ).trim()
+
+                    rebuildRequired = params.FORCE_REBUILD || !lastBuiltCommit || currentCommit != lastBuiltCommit
+
+                    if (rebuildRequired) {
+                        echo "Rebuild required for commit ${currentCommit} (previous built commit: ${lastBuiltCommit ?: 'none'})."
+                    } else {
+                        echo "Skipping rebuild because commit ${currentCommit} is already built."
+                    }
+                }
+            }
+        }
+
         stage('Build Wheel') {
+            when {
+                allOf {
+                    expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+                    expression { return rebuildRequired }
+                }
+            }
             steps {
                 sh 'rm -rf dist'
                 sh 'just build'
@@ -45,7 +76,11 @@ pipeline {
 
         stage('Test') {
             when {
-                expression { return params.RUN_TESTS }
+                allOf {
+                    expression { return params.RUN_TESTS }
+                    expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+                    expression { return rebuildRequired }
+                }
             }
             steps {
                 sh 'uv run pytest -q'
@@ -54,7 +89,10 @@ pipeline {
 
         stage('Build Image') {
             when {
-                expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                allOf {
+                    expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+                    expression { return rebuildRequired }
+                }
             }
             steps {
                 sh '''
@@ -64,29 +102,18 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Record Built Commit') {
             when {
                 allOf {
-                    expression { return params.DEPLOY_ENABLED }
-                    expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                    expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
                 sh '''
                     set -euo pipefail
-                    mkdir -p "${DEPLOY_PATH}"
-
-                    cat > "${DEPLOY_PATH}/deploy.env" <<EOF
-IMAGE_REF=${IMAGE_NAME}:latest
-CONTAINER_NAME=${DEPLOY_CONTAINER_NAME}
-ATS_COMMANDS=${DEPLOY_COMMANDS}
-APP_ENV_FILE=${DEPLOY_APP_ENV_FILE}
-EOF
-
-                    cp jenkins/docker-compose.yml "${DEPLOY_PATH}/docker-compose.yml"
-
-                    cd "${DEPLOY_PATH}"
-                    docker compose --env-file deploy.env up -d
+                    mkdir -p "${BUILD_STATE_DIR}"
+                    printf '%s\n' "${GIT_COMMIT}" > "${BUILD_STATE_DIR}/${IMAGE_NAME}.last_built_commit"
                 '''
             }
         }
@@ -95,7 +122,8 @@ EOF
             when {
                 allOf {
                     expression { return params.PRUNE_IMAGES }
-                    expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                    expression { return env.BRANCH_NAME == params.BUILD_BRANCH }
+                    expression { return rebuildRequired }
                 }
             }
             steps {
@@ -110,7 +138,15 @@ EOF
 
     post {
         success {
-            echo "Built ${params.IMAGE_NAME}:latest"
+            script {
+                if (env.BRANCH_NAME != params.BUILD_BRANCH) {
+                    echo "Build job is idle because branch ${env.BRANCH_NAME} is not ${params.BUILD_BRANCH}."
+                } else if (rebuildRequired) {
+                    echo "Built ${params.IMAGE_NAME}:latest from commit ${currentCommit}."
+                } else {
+                    echo "No new commit on ${params.BUILD_BRANCH}; image rebuild skipped."
+                }
+            }
         }
     }
 }

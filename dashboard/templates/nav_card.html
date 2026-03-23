@@ -1,0 +1,68 @@
+<section class="card nav-card">
+  <div class="nav-card-header">
+    <div class="nav-card-header-primary">
+      <div class="nav-card-title">Fund NAV</div>
+      <div class="nav-card-header-metric">
+        <div class="nav-card-header-value">{{ nav_context.latest_nav }}</div>
+        <div class="nav-card-header-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
+          {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
+        </div>
+        <div class="nav-card-header-stamp">As of {{ nav_context.latest_date }}</div>
+      </div>
+    </div>
+    <div>
+      <div class="nav-card-subtitle">Daily fund NAV history</div>
+    </div>
+  </div>
+  <div class="nav-metric-grid">
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Range Return</div>
+      <div class="nav-metric-main">
+        <div id="nav-metric-return" class="nav-metric-value">--</div>
+        <div id="nav-metric-return-detail" class="nav-metric-detail">Selected range</div>
+      </div>
+    </div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Volatility</div>
+      <div class="nav-metric-main">
+        <div id="nav-metric-vol" class="nav-metric-value">--</div>
+        <div class="nav-metric-detail">Annualized daily</div>
+      </div>
+    </div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Hit Ratio</div>
+      <div class="nav-metric-main">
+        <div id="nav-metric-hit" class="nav-metric-value">--</div>
+        <div id="nav-metric-hit-detail" class="nav-metric-detail">Positive periods</div>
+      </div>
+    </div>
+    <div class="nav-metric-card">
+      <div class="nav-metric-label">Current Drawdown</div>
+      <div class="nav-metric-main">
+        <div id="nav-metric-dd" class="nav-metric-value">--</div>
+        <div class="nav-metric-detail">From peak</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-card-toolbar">
+    <div class="nav-range-picker">
+      <button type="button" id="nav-range-button" class="nav-range-button" aria-haspopup="true" aria-expanded="false">
+        <span id="nav-range-label">YTD</span>
+        <span class="nav-range-caret">⌄</span>
+      </button>
+      <div id="nav-range-menu" class="nav-range-menu" hidden>
+        <button type="button" data-range="1D">1D</button>
+        <button type="button" data-range="5D">5D</button>
+        <button type="button" data-range="1M">1M</button>
+        <button type="button" data-range="YTD">YTD</button>
+      </div>
+    </div>
+  </div>
+  <div class="nav-chart-wrap">
+    <div
+      id="nav-chart"
+      class="nav-chart"
+      data-points='{{ nav_context.chart_points|tojson }}'
+    ></div>
+  </div>
+</section>

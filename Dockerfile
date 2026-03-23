@@ -18,9 +18,16 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY dist/*.whl /tmp/dist/
+COPY docker/run-ats-commands.sh /usr/local/bin/run-ats-commands.sh
+COPY docker/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends cron libpq5 poppler-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    && uv pip --system install --no-cache-dir /tmp/dist/*.whl \
+    && chmod +x /usr/local/bin/run-ats-commands.sh \
+    && chmod +x /usr/local/bin/cron-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["ats", "--help"]

@@ -4,7 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>404 - Table Not Found</title>
+  <script>
+    (function () {
+      const storedTheme = window.localStorage.getItem("dashboard-theme");
+      const theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/dashboard-light.css" />
 </head>
 <body class="not-found">
   <div class="card">

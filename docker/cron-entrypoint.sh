@@ -6,24 +6,6 @@ if [ -z "${ATS_COMMANDS:-}" ]; then
     exit 1
 fi
 
-cat >/usr/local/bin/run-ats-commands.sh <<'EOF'
-#!/bin/sh
-set -eu
-
-old_ifs=$IFS
-IFS=','
-for raw_command in $ATS_COMMANDS; do
-    command=$(printf '%s' "$raw_command" | xargs)
-    if [ -n "$command" ]; then
-        echo "Running ats ${command}"
-        ats "$command"
-    fi
-done
-IFS=$old_ifs
-EOF
-
-chmod +x /usr/local/bin/run-ats-commands.sh
-
 cat >/etc/cron.d/ats <<EOF
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
