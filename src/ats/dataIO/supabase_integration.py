@@ -145,6 +145,14 @@ def fetch_recent_dates(table_name: str, limit: int = 7) -> list[str]:
             return [row[0].isoformat() for row in cur.fetchall()]
 
 
+def get_max_trading212_daily_account_date() -> str | None:
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select max(date) from trading212_daily_account")
+            max_date = cur.fetchone()[0]
+    return max_date.isoformat() if max_date is not None else None
+
+
 def fetch_top_rows_for_date(
     table_name: str,
     selected_date: str,

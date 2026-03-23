@@ -5,82 +5,333 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Supabase Dashboard</title>
   <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="dashboard">
-  <div class="dashboard-grid">
-    <main class="dashboard-main">
-      <section class="card shell-card shell-card-primary">
-        <div class="shell-header">
-          <span>PRIMARY PANEL</span>
-          <span>Loading first</span>
+  <div class="dashboard-shell">
+    {% if nav_context %}
+    <section class="card nav-card">
+      <div class="nav-card-header">
+        <div>
+          <div class="nav-card-title">Fund NAV</div>
+          <div class="nav-card-subtitle">Daily fund NAV history</div>
         </div>
-        <div id="primary-panel" class="panel-slot" data-partial-url="/partials/us_midcap_metrics">
-          <div class="panel-skeleton" aria-hidden="true">
-            <div class="skeleton-row skeleton-row-title"></div>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
+      </div>
+      <div class="nav-card-quote-strip">
+        <div class="nav-card-quote nav-card-quote-primary">
+          <div class="nav-card-price">{{ nav_context.latest_nav }}</div>
+          <div class="nav-card-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
+            {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
+          </div>
+          <div class="nav-card-stamp">As of {{ nav_context.latest_date }}</div>
+        </div>
+        <div class="nav-card-quote nav-card-quote-secondary">
+          <div class="nav-card-price">{{ nav_context.previous_nav }}</div>
+          <div class="nav-card-change negative">
+            Reference {{ nav_context.reference_nav }}
+          </div>
+          <div class="nav-card-stamp">Previous close {{ nav_context.previous_date }}</div>
+        </div>
+      </div>
+      <div class="nav-card-toolbar">
+        <div class="nav-range-picker">
+          <button type="button" id="nav-range-button" class="nav-range-button" aria-haspopup="true" aria-expanded="false">
+            <span id="nav-range-label">YTD</span>
+            <span class="nav-range-caret">⌄</span>
+          </button>
+          <div id="nav-range-menu" class="nav-range-menu" hidden>
+            <button type="button" data-range="1D">1D</button>
+            <button type="button" data-range="5D">5D</button>
+            <button type="button" data-range="1M">1M</button>
+            <button type="button" data-range="6M">6M</button>
+            <button type="button" data-range="YTD">YTD</button>
+            <button type="button" data-range="1Y">1Y</button>
+            <button type="button" data-range="5Y">5Y</button>
+            <button type="button" data-range="MAX">MAX</button>
           </div>
         </div>
-      </section>
-    </main>
-    <aside class="dashboard-side">
-      <section class="card shell-card shell-card-secondary">
-        <div class="shell-header">
-          <span>SECONDARY PANEL</span>
-          <span>Deferred</span>
+      </div>
+      <div class="nav-chart-wrap">
+        <canvas
+          id="nav-chart"
+          data-points='{{ nav_context.chart_points|tojson }}'
+        ></canvas>
+      </div>
+      <div class="nav-stats">
+        <div class="nav-stat">
+          <span class="nav-stat-label">Max Drawdown</span>
+          <span id="nav-max-drawdown" class="nav-stat-value negative">{{ nav_context.max_drawdown }}</span>
         </div>
-        <div id="secondary-panel" class="panel-slot" data-partial-url="/partials/us_largecap_metrics">
-          <div class="panel-skeleton" aria-hidden="true">
-            <div class="skeleton-row skeleton-row-title"></div>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
-          </div>
+        <div class="nav-stat">
+          <span class="nav-stat-label">Max Upside</span>
+          <span id="nav-max-upside" class="nav-stat-value positive">{{ nav_context.max_upside }}</span>
         </div>
-      </section>
-    </aside>
+      </div>
+    </section>
+    {% endif %}
+    <div class="dashboard-grid">
+      <div class="dashboard-main">
+        {{ table_html|safe }}
+      </div>
+      <aside class="dashboard-side">
+        {{ secondary_table_html|safe }}
+      </aside>
+    </div>
   </div>
   <script>
-    const panelStates = new Map();
+    const canvas = document.getElementById("nav-chart");
+    const rangeButton = document.getElementById("nav-range-button");
+    const rangeLabel = document.getElementById("nav-range-label");
+    const rangeMenu = document.getElementById("nav-range-menu");
+    const maxDrawdownNode = document.getElementById("nav-max-drawdown");
+    const maxUpsideNode = document.getElementById("nav-max-upside");
 
-    async function loadPanel(panelId) {
-      const panel = document.getElementById(panelId);
-      if (!panel) {
-        return;
-      }
-      const url = panel.dataset.partialUrl;
-      if (!url || panelStates.get(panelId) === "loaded" || panelStates.get(panelId) === "loading") {
-        return;
-      }
+    if (canvas && window.Chart) {
+      const allPoints = JSON.parse(canvas.dataset.points || "[]");
+      const positiveColor = "#1745F3";
+      const negativeColor = "#B42318";
+      const rangeDayMap = { "1D": 1, "5D": 5, "1M": 30, "6M": 183, "1Y": 365, "5Y": 1825 };
+      let currentAverage = 0;
+      let visibleTickLabels = new Set();
 
-      panelStates.set(panelId, "loading");
+      const formatPercent = (value) => `${value >= 0 ? "+" : "-"}${(Math.abs(value) * 100).toFixed(2)}%`;
 
-      try {
-        const response = await fetch(url, {
-          headers: { "X-Requested-With": "fetch" },
-          credentials: "same-origin",
+      const computeAverage = (points) => (
+        points.reduce((sum, point) => sum + point.y, 0) / Math.max(points.length, 1)
+      );
+
+      const computeMaxDrawdown = (points) => {
+        if (points.length === 0) return 0;
+        let peak = points[0].y;
+        let maxDrawdown = 0;
+        points.forEach((point) => {
+          peak = Math.max(peak, point.y);
+          if (peak) {
+            maxDrawdown = Math.min(maxDrawdown, (point.y / peak) - 1);
+          }
         });
-        panel.innerHTML = await response.text();
-      } catch (error) {
-        panel.innerHTML = '<div class="card load-error"><p>Unable to load panel content.</p></div>';
-      } finally {
-        panelStates.set(panelId, "loaded");
+        return maxDrawdown;
+      };
+
+      const computeMaxUpside = (points) => {
+        if (points.length === 0) return 0;
+        let trough = points[0].y;
+        let maxUpside = 0;
+        points.forEach((point) => {
+          trough = Math.min(trough, point.y);
+          if (trough) {
+            maxUpside = Math.max(maxUpside, (point.y / trough) - 1);
+          }
+        });
+        return maxUpside;
+      };
+
+      const computeVisibleTickLabels = (points) => {
+        const count = points.length;
+        if (count <= 5) {
+          return new Set(points.map((point) => point.label));
+        }
+        const indices = new Set([0, count - 1, Math.floor(count / 4), Math.floor(count / 2), Math.floor((count * 3) / 4)]);
+        return new Set(Array.from(indices).map((index) => points[index].label));
+      };
+
+      const filterPointsByRange = (range) => {
+        if (allPoints.length === 0 || range === "MAX") return allPoints;
+
+        const latest = new Date(`${allPoints[allPoints.length - 1].raw_date}T00:00:00`);
+        if (Number.isNaN(latest.getTime())) return allPoints;
+
+        if (range === "YTD") {
+          const start = `${latest.getFullYear()}-01-01`;
+          return allPoints.filter((point) => point.raw_date >= start);
+        }
+
+        const days = rangeDayMap[range];
+        if (!days) return allPoints;
+
+        const cutoff = new Date(latest);
+        cutoff.setDate(cutoff.getDate() - days);
+        const cutoffText = cutoff.toISOString().slice(0, 10);
+        const filtered = allPoints.filter((point) => point.raw_date >= cutoffText);
+        return filtered.length >= 2 ? filtered : allPoints.slice(Math.max(0, allPoints.length - 2));
+      };
+
+      const buildFillGradient = (chart) => {
+        const {ctx, chartArea, scales} = chart;
+        if (!chartArea || !Number.isFinite(currentAverage)) {
+          return "rgba(23, 69, 243, 0.08)";
+        }
+        const averagePixel = scales.y.getPixelForValue(currentAverage);
+        const stop = Math.min(1, Math.max(0, (averagePixel - chartArea.top) / (chartArea.bottom - chartArea.top)));
+        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        gradient.addColorStop(0, "rgba(23, 69, 243, 0.16)");
+        gradient.addColorStop(stop, "rgba(23, 69, 243, 0.05)");
+        gradient.addColorStop(stop, "rgba(180, 35, 24, 0.05)");
+        gradient.addColorStop(1, "rgba(180, 35, 24, 0.16)");
+        return gradient;
+      };
+
+      const updateStats = (points) => {
+        if (maxDrawdownNode) {
+          maxDrawdownNode.textContent = formatPercent(computeMaxDrawdown(points));
+        }
+        if (maxUpsideNode) {
+          maxUpsideNode.textContent = formatPercent(computeMaxUpside(points));
+        }
+      };
+
+      const averageLinePlugin = {
+        id: "averageLine",
+        afterDatasetsDraw(chart) {
+          const {ctx, chartArea, scales} = chart;
+          if (!chartArea || !Number.isFinite(currentAverage)) return;
+          const y = scales.y.getPixelForValue(currentAverage);
+          ctx.save();
+          ctx.strokeStyle = "rgba(145, 135, 120, 0.6)";
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(chartArea.left, y);
+          ctx.lineTo(chartArea.right, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          const label = `Average: $${currentAverage.toFixed(2)}`;
+          ctx.font = "12px Segoe UI, Arial, sans-serif";
+          const width = ctx.measureText(label).width + 18;
+          const x = chartArea.right - width - 10;
+          const h = 28;
+          const r = 14;
+          const top = Math.max(chartArea.top + 10, y - 14);
+          ctx.fillStyle = "rgba(240, 235, 226, 0.96)";
+          ctx.beginPath();
+          ctx.moveTo(x + r, top);
+          ctx.arcTo(x + width, top, x + width, top + h, r);
+          ctx.arcTo(x + width, top + h, x, top + h, r);
+          ctx.arcTo(x, top + h, x, top, r);
+          ctx.arcTo(x, top, x + width, top, r);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#7a7369";
+          ctx.fillText(label, x + 9, top + 18);
+          ctx.restore();
+        }
+      };
+
+      const initialPoints = filterPointsByRange("YTD");
+      currentAverage = computeAverage(initialPoints);
+      visibleTickLabels = computeVisibleTickLabels(initialPoints);
+      updateStats(initialPoints);
+
+      const chart = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: initialPoints.map((point) => point.label),
+          datasets: [{
+            data: initialPoints.map((point) => point.y),
+            borderWidth: 2.25,
+            pointRadius: 0,
+            pointHitRadius: 8,
+            pointHoverRadius: 3,
+            fill: true,
+            tension: 0.24,
+            segment: {
+              borderColor(context) {
+                const midpoint = (context.p0.parsed.y + context.p1.parsed.y) / 2;
+                return midpoint >= currentAverage ? positiveColor : negativeColor;
+              }
+            },
+            backgroundColor(context) {
+              return buildFillGradient(context.chart);
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: {display: false},
+            tooltip: {
+              displayColors: false,
+              backgroundColor: "rgba(34, 37, 41, 0.92)",
+              callbacks: {
+                label(context) {
+                  return `NAV: $${Number(context.parsed.y).toFixed(2)}`;
+                }
+              }
+            }
+          },
+          layout: {
+            padding: {left: 8, right: 8, top: 8, bottom: 0}
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                color: "#998e7d",
+                maxRotation: 0,
+                autoSkip: false,
+                callback(value) {
+                  const label = this.getLabelForValue(value);
+                  return visibleTickLabels.has(label) ? label : "";
+                }
+              }
+            },
+            y: {
+              grace: "6%",
+              grid: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                color: "#998e7d",
+                callback(value) {
+                  return Number(value).toFixed(1);
+                }
+              }
+            }
+          }
+        },
+        plugins: [averageLinePlugin]
+      });
+
+      const applyRange = (range) => {
+        const points = filterPointsByRange(range);
+        visibleTickLabels = computeVisibleTickLabels(points);
+        currentAverage = computeAverage(points);
+        updateStats(points);
+        chart.data.labels = points.map((point) => point.label);
+        chart.data.datasets[0].data = points.map((point) => point.y);
+        chart.update();
+        rangeLabel.textContent = range;
+      };
+
+      if (rangeButton && rangeMenu && rangeLabel) {
+        rangeButton.addEventListener("click", () => {
+          const expanded = rangeButton.getAttribute("aria-expanded") === "true";
+          rangeButton.setAttribute("aria-expanded", String(!expanded));
+          rangeMenu.hidden = expanded;
+        });
+
+        rangeMenu.querySelectorAll("button[data-range]").forEach((button) => {
+          button.addEventListener("click", () => {
+            applyRange(button.dataset.range);
+            rangeButton.setAttribute("aria-expanded", "false");
+            rangeMenu.hidden = true;
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!rangeButton.contains(event.target) && !rangeMenu.contains(event.target)) {
+            rangeButton.setAttribute("aria-expanded", "false");
+            rangeMenu.hidden = true;
+          }
+        });
       }
     }
-
-    function deferSecondaryPanel() {
-      if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(() => loadPanel("secondary-panel"), { timeout: 2000 });
-        return;
-      }
-      window.setTimeout(() => loadPanel("secondary-panel"), 400);
-    }
-
-    window.addEventListener("DOMContentLoaded", async () => {
-      await loadPanel("primary-panel");
-      deferSecondaryPanel();
-    }, { once: true });
   </script>
 </body>
 </html>

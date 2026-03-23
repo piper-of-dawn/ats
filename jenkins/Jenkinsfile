@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run pytest before building the image.')
+        booleanParam(name: 'DEPLOY_ENABLED', defaultValue: true, description: 'Deploy after a successful build on the deploy branch.')
+        string(name: 'DEPLOY_BRANCH', defaultValue: 'main', description: 'Branch allowed to update the local deployment.')
+        string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
+        string(name: 'DEPLOY_PATH', defaultValue: '/var/lib/jenkins/ats', description: 'Local directory that stores compose deployment files.')
+        string(name: 'DEPLOY_APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file mounted by docker compose.')
+        string(name: 'DEPLOY_CONTAINER_NAME', defaultValue: 'ats', description: 'Container name used by docker compose.')
+        string(name: 'DEPLOY_COMMANDS', defaultValue: 'us_midcap', description: 'Comma-separated table names run daily by the scheduler container.')
+        booleanParam(name: 'PRUNE_IMAGES', defaultValue: true, description: 'Prune dangling Docker images and build cache after deploy.')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify Tooling') {
+            steps {
+                sh 'uv --version'
+                sh 'just --version'
+                sh 'docker --version'
+                sh 'docker compose version'
+                sh 'docker info >/dev/null'
+            }
+        }
+
+        stage('Build Wheel') {
+            steps {
+                sh 'rm -rf dist'
+                sh 'just build'
+                sh 'ls -lh dist'
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression { return params.RUN_TESTS }
+            }
+            steps {
+                sh 'uv run pytest -q'
+            }
+        }
+
+        stage('Build Image') {
+            when {
+                expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+            }
+            steps {
+                sh '''
+                    set -euo pipefail
+                    docker build --tag "${IMAGE_NAME}:latest" .
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                allOf {
+                    expression { return params.DEPLOY_ENABLED }
+                    expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                }
+            }
+            steps {
+                sh '''
+                    set -euo pipefail
+                    mkdir -p "${DEPLOY_PATH}"
+
+                    cat > "${DEPLOY_PATH}/deploy.env" <<EOF
+IMAGE_REF=${IMAGE_NAME}:latest
+CONTAINER_NAME=${DEPLOY_CONTAINER_NAME}
+ATS_COMMANDS=${DEPLOY_COMMANDS}
+APP_ENV_FILE=${DEPLOY_APP_ENV_FILE}
+EOF
+
+                    cp jenkins/docker-compose.yml "${DEPLOY_PATH}/docker-compose.yml"
+
+                    cd "${DEPLOY_PATH}"
+                    docker compose --env-file deploy.env up -d
+                '''
+            }
+        }
+
+        stage('Prune Docker') {
+            when {
+                allOf {
+                    expression { return params.PRUNE_IMAGES }
+                    expression { return env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                }
+            }
+            steps {
+                sh '''
+                    set -euo pipefail
+                    docker image prune -f
+                    docker builder prune -f
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Built ${params.IMAGE_NAME}:latest"
+        }
+    }
+}
