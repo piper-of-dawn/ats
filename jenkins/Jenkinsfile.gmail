@@ -50,10 +50,7 @@ pipeline {
                             runtime_dir="${GMAIL_RUNTIME_DIR}"
                             mkdir -p "${runtime_dir}/config" "${runtime_dir}/output" "${runtime_dir}/secrets"
                             install -m 600 "${GMAIL_CLIENT_SECRET_FILE}" "${runtime_dir}/secrets/secret.json"
-
-                            if [ ! -f "${runtime_dir}/config/token.json" ] && [ -n "${GMAIL_TOKEN_BOOTSTRAP_FILE:-}" ]; then
-                                install -m 600 "${GMAIL_TOKEN_BOOTSTRAP_FILE}" "${runtime_dir}/config/token.json"
-                            fi
+                            install -m 600 "${GMAIL_TOKEN_BOOTSTRAP_FILE}" "${runtime_dir}/config/token.json"
 
                             if [ ! -f "${runtime_dir}/config/token.json" ]; then
                                 echo "Missing ${runtime_dir}/config/token.json after checking Jenkins credential gmail-oauth-token-bootstrap." >&2
@@ -82,17 +79,18 @@ EOF
                 sh '''
                     set -euo pipefail
                     container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+                    runtime_dir="${GMAIL_RUNTIME_DIR}"
 
                     docker run --rm \
-                    --name ats-gmail-11 \
-                    --env-file /var/lib/jenkins/ats/app.env \
-                    --env-file /var/lib/jenkins/ats-gmail/gmail.env \
-                    -v /var/lib/jenkins/ats-gmail/output:/app/output \
-                    -v /var/lib/jenkins/ats-gmail/config:/app/config \
-                    -v /var/lib/jenkins/ats-gmail/secrets:/app/secrets:ro \
-                    --entrypoint sh \
-                    ats:latest \
-                    -c 'trading212-gmail-sync && announce-fund-nav'
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        --env-file "${runtime_dir}/gmail.env" \
+                        -v "${runtime_dir}/output:/app/output" \
+                        -v "${runtime_dir}/config:/app/config" \
+                        -v "${runtime_dir}/secrets:/app/secrets:ro" \
+                        --entrypoint sh \
+                        "${IMAGE_NAME}:latest" \
+                        -c 'trading212-gmail-sync && announce-fund-nav'
                 '''
             }
         }
