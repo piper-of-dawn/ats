@@ -1016,6 +1016,16 @@ td.status {
   font-weight: 600;
 }
 
+@keyframes skeleton-shift {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 980px) {
   .dashboard-grid {
     grid-template-columns: 1fr;

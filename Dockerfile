@@ -1,8 +1,20 @@
-FROM python:3.13-slim
+FROM ubuntu:24.04
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    TZ=UTC
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common uv ca-certificates curl \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends python3.13 python3.13-venv python3.13-distutils \
+    && curl -fsS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+    && python3.13 /tmp/get-pip.py \
+    && rm -f /tmp/get-pip.py \
+    && apt-get purge -y software-properties-common \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -17,4 +29,5 @@ RUN apt-get update \
     && chmod +x /usr/local/bin/run-ats-commands.sh \
     && chmod +x /usr/local/bin/cron-entrypoint.sh
 
-ENTRYPOINT ["/usr/local/bin/cron-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["ats", "--help"]
