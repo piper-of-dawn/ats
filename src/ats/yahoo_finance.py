@@ -42,6 +42,8 @@ def _record_rogue_ticker(
 def fetch_price_data(
     ticker: str,
     cooldown_range: Tuple[float, float] | None = (0.5, 1.5),
+    start = None,
+    end = None
 ) -> pl.DataFrame:
     """
     Fetch 1-year historical price data for a ticker via yfinance and return as a Polars DataFrame.
@@ -90,9 +92,10 @@ def fetch_price_data(
             # Ignore sleep errors
             pass
 
-
-    start = one_year_ago_yyyymmdd(sep="-")
-    end = today_yyyymmdd(sep="-")
+    if not start:
+        start = one_year_ago_yyyymmdd(sep="-")
+    if not end:
+        end = today_yyyymmdd(sep="-")
 
     try:
         # yfinance returns a pandas DataFrame; suppress progress/threads for determinism
