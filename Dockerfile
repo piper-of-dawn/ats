@@ -20,6 +20,7 @@ WORKDIR /app
 
 COPY dist/*.whl /tmp/dist/
 COPY docker/run-ats-commands.sh /usr/local/bin/run-ats-commands.sh
+COPY docker/run-ats-ratings.sh /usr/local/bin/run-ats-ratings.sh
 COPY docker/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
 
 RUN apt-get update \
@@ -27,6 +28,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && uv pip --system install --no-cache-dir /tmp/dist/*.whl \
     && chmod +x /usr/local/bin/run-ats-commands.sh \
+    && chmod +x /usr/local/bin/run-ats-ratings.sh \
     && chmod +x /usr/local/bin/cron-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

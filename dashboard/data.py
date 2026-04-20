@@ -39,12 +39,18 @@ _TABLE_TITLES = {
     "us_midcap_metrics": "US Midcap Highlights",
 }
 
+_RATINGS_TABLES = {
+    "us_largecap_metrics": "us_largecap_ratings",
+    "us_midcap_metrics": "us_midcap_ratings",
+}
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
     available_dates = fetch_recent_dates(table_name, limit=7)
     selected_date = available_dates[0] if available_dates else None
     rows_df = fetch_rows_for_selected_date(table_name, selected_date, columns)
+    rows_df = _join_ratings(table_name, rows_df)
     columns = list(rows_df.columns)
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
@@ -184,6 +190,19 @@ def get_dashboard_columns(table_name: str) -> list[str]:
         return selected_columns
 
     return available_columns[:6]
+
+
+def _join_ratings(table_name: str, rows_df: pl.DataFrame) -> pl.DataFrame:
+    ratings_table = _RATINGS_TABLES.get(table_name)
+    if not ratings_table or rows_df.is_empty() or "ticker" not in rows_df.columns:
+        return rows_df
+    try:
+        ratings_df = fetch_table(ratings_table, columns=["ticker", "rating"])
+    except UndefinedTable:
+        return rows_df
+    if ratings_df.is_empty():
+        return rows_df
+    return rows_df.join(ratings_df, on="ticker", how="left")
 
 
 def fetch_rows_for_selected_date(

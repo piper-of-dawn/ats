@@ -229,6 +229,7 @@ def batch_insert(
     columns: list[str],
     data: list[tuple],
     conflict_columns: list[str] | None = None,
+    overwrite_conflicts: bool = False,
 ):
     if not data:
         return
@@ -238,9 +239,21 @@ def batch_insert(
         sql.SQL(", ").join(sql.Placeholder() for _ in columns),
     )
     if conflict_columns:
-        query += sql.SQL(" ON CONFLICT ({}) DO NOTHING").format(
-            sql.SQL(", ").join(sql.Identifier(col) for col in conflict_columns)
-        )
+        if overwrite_conflicts:
+            update_cols = [c for c in columns if c not in conflict_columns]
+            if update_cols:
+                set_clause = sql.SQL(", ").join(
+                    sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c))
+                    for c in update_cols
+                )
+                conflict_action = sql.SQL("DO UPDATE SET ") + set_clause
+            else:
+                conflict_action = sql.SQL("DO NOTHING")
+        else:
+            conflict_action = sql.SQL("DO NOTHING")
+        query += sql.SQL(" ON CONFLICT ({}) ").format(
+            sql.SQL(", ").join(sql.Identifier(col) for col in conflict_columns),
+        ) + conflict_action
     with _connect() as conn:
         with conn.cursor() as cur:
             cur.executemany(query, data)
@@ -285,13 +298,14 @@ def table_exists(table_name: str) -> bool:
             return cur.fetchone()[0]
 
 
-def batch_insert_polars_df(df, columns, table_name, conflict_columns: list[str] | None = None):
+def batch_insert_polars_df(df, columns, table_name, conflict_columns: list[str] | None = None, overwrite_conflicts: bool = False):
     data = [tuple(row[col] for col in columns) for row in df.iter_rows(named=True)]
     batch_insert(
         table_name=table_name,
         columns=list(columns),
         data=data,
         conflict_columns=conflict_columns,
+        overwrite_conflicts=overwrite_conflicts,
     )
 
 def create_relation(schema: str, table_name: str):
