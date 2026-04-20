@@ -1139,10 +1139,10 @@ td.status {
   .mobile-row-summary {
     list-style: none;
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 10px;
     padding: 14px 16px;
-    cursor: pointer;
+    cursor: default;
     align-items: start;
   }
 
@@ -1202,13 +1202,13 @@ td.status {
 
 @media (max-width: 480px) {
   .nav-metric-grid,
-  .treemap-legend,
-  .mobile-row-summary {
+  .treemap-legend {
     grid-template-columns: 1fr;
   }
 
   .mobile-row-summary {
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 8px;
   }
 
   .treemap-legend {

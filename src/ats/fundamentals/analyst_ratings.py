@@ -107,8 +107,9 @@ def main ():
     table_name = args.table_named or args.table
     df = fetch_table(table_name).drop_nulls()
     tickers = df['yahoo_finance_ticker'].to_list()
-    df = run_cbs_parallel(tickers)
-    batch_insert_polars_df(df[0].rename({"cbs": "rating"}), ["ticker", "rating"], f"{table_name}_ratings", overwrite_conflicts=True, conflict_columns=["ticker"])
+    create_consensus_quantile = ((pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)).alias("rating")
+    df = run_cbs_parallel(tickers)[0].with_columns(create_consensus_quantile)
+    batch_insert_polars_df(df, ["ticker", "rating"], f"{table_name}_ratings", overwrite_conflicts=True, conflict_columns=["ticker"])
     return 0
 
 

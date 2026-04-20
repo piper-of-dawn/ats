@@ -214,14 +214,12 @@ def fetch_rows_for_selected_date(
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
-    primary_columns = []
-    for candidate in ("ticker", "yahoo_finance_ticker", "ltm", "stm"):
-        if candidate in columns and candidate not in primary_columns:
-            primary_columns.append(candidate)
-    if not primary_columns:
-        primary_columns = columns[:3]
-    detail_columns = [column for column in columns if column not in primary_columns]
-    return primary_columns, detail_columns
+    primary_order = ("ticker", "yahoo_finance_ticker", "ltm", "stm", "rating", "beta")
+    primary_columns = [c for c in primary_order if c in columns]
+    for column in columns:
+        if column not in primary_columns:
+            primary_columns.append(column)
+    return primary_columns, []
 
 
 def _find_column_name(columns: list[str], target: str) -> str:
