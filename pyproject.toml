@@ -32,6 +32,7 @@ dev = [
 
 [project.scripts]
 ats = "ats.cli:main"
+ats-update-price-targets = "ats.fundamentals.analyst_price_targets:main"
 ats-update-ratings = "ats.fundamentals.analyst_ratings:main"
 dashboard-local = "ats.dashboard:run"
 gmail-downloader = "ats.gmail_downloader:main"

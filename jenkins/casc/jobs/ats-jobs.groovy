@@ -70,3 +70,25 @@ pipelineJob('ATS/gmail-sync') {
         }
     }
 }
+
+pipelineJob('ATS/ratings-update') {
+    displayName('ATS Ratings Update')
+    description('Runs the scheduled analyst ratings and price target update using jenkins/Jenkinsfile.ratings')
+    definition {
+        cpsScm {
+            scm {
+                git {
+                    remote {
+                        url(repoUrl)
+                        if (repoCredentialsId) {
+                            credentials(repoCredentialsId)
+                        }
+                    }
+                    branch(buildBranch)
+                }
+            }
+            scriptPath('jenkins/Jenkinsfile.ratings')
+            lightweight(true)
+        }
+    }
+}

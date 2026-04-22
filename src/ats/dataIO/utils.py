@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date
 from functools import wraps
 
 import polars as pl
@@ -49,3 +50,36 @@ def with_parallel_runner(
         return func
 
     return decorator
+
+
+def build_metric_pivot_frame(
+    df: pl.DataFrame,
+    metric_columns: list[str],
+    created_at: date | None = None,
+) -> pl.DataFrame:
+    created_at = created_at or date.today()
+    pivot_frames = []
+
+    for metric in metric_columns:
+        if metric not in df.columns:
+            continue
+        pivot_frames.append(
+            df.select(
+                pl.lit(created_at).alias("created_at"),
+                pl.col("ticker"),
+                pl.lit(metric).alias("metric"),
+                pl.col(metric).cast(pl.Float64, strict=False).alias("value"),
+            ).filter(pl.col("value").is_not_null())
+        )
+
+    if not pivot_frames:
+        return pl.DataFrame(
+            schema={
+                "created_at": pl.Date,
+                "ticker": pl.Utf8,
+                "metric": pl.Utf8,
+                "value": pl.Float64,
+            }
+        )
+
+    return pl.concat(pivot_frames, how="vertical")

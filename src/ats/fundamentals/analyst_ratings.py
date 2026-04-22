@@ -5,7 +5,7 @@ import polars as pl
 import time
 import random
 from ats.dataIO.supabase_integration import fetch_table, batch_insert_polars_df
-from ats.dataIO.utils import with_parallel_runner
+from ats.dataIO.utils import with_parallel_runner, build_metric_pivot_frame
 LABELS = ["strongBuy", "buy", "hold", "sell", "strongSell"]
 R = np.array([2, 1, 0, -1, -2])
 
@@ -89,6 +89,11 @@ def main ():
     create_consensus_quantile = ((pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)).alias("rating")
     df = CBS.parallel(tickers)[0].with_columns(create_consensus_quantile)
     batch_insert_polars_df(df, ["ticker", "rating"], f"{table_name}_ratings", overwrite_conflicts=True, conflict_columns=["ticker"])
+    pivot_df = build_metric_pivot_frame(
+        df.rename({"rating": "rating_quantile"}),
+        ["rating_quantile"],
+    )
+    batch_insert_polars_df(pivot_df, ["created_at", "ticker", "metric", "value"], "pivot")
     return 0
 
 
