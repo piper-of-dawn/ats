@@ -7,7 +7,7 @@
       <thead>
         <tr>
           {% for col in columns %}
-          <th>{{ col.replace("_", " ").upper() }}</th>
+          <th>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</th>
           {% endfor %}
         </tr>
       </thead>
@@ -28,7 +28,7 @@
       <summary class="mobile-row-summary">
         {% for col in mobile_primary_columns %}
         <div class="mobile-cell">
-          <span class="mobile-cell-label">{{ col.replace("_", " ").upper() }}</span>
+          <span class="mobile-cell-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
           <span class="mobile-cell-value {% if 'status' in col.lower() %}status{% endif %}">
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
           </span>
@@ -39,7 +39,7 @@
       <div class="mobile-row-details">
         {% for col in mobile_detail_columns %}
         <div class="mobile-detail-item">
-          <span class="mobile-detail-label">{{ col.replace("_", " ").upper() }}</span>
+          <span class="mobile-detail-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
           <span class="mobile-detail-value {% if 'status' in col.lower() %}status{% endif %}">
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
           </span>

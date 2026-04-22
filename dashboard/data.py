@@ -44,6 +44,10 @@ _RATINGS_TABLES = {
     "us_midcap_metrics": "us_midcap_ratings",
 }
 
+_COLUMN_LABELS = {
+    "price_target_deviation": "Price Target Dev",
+}
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -57,6 +61,7 @@ def get_dashboard_context(table_name: str) -> dict:
         "table_name": table_name,
         "display_title": _TABLE_TITLES.get(table_name, table_name.replace("_", " ").title()),
         "columns": columns,
+        "column_labels": {column: _COLUMN_LABELS.get(column, column.replace("_", " ").upper()) for column in columns},
         "rows": rows_df.to_dicts(),
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
@@ -197,7 +202,7 @@ def _join_ratings(table_name: str, rows_df: pl.DataFrame) -> pl.DataFrame:
     if not ratings_table or rows_df.is_empty() or "ticker" not in rows_df.columns:
         return rows_df
     try:
-        ratings_df = fetch_table(ratings_table, columns=["ticker", "rating"])
+        ratings_df = fetch_table(ratings_table, columns=["ticker", "rating", "price_target_deviation"])
     except UndefinedTable:
         return rows_df
     if ratings_df.is_empty():
@@ -214,7 +219,7 @@ def fetch_rows_for_selected_date(
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
-    primary_order = ("ticker", "yahoo_finance_ticker", "ltm", "stm", "rating", "beta")
+    primary_order = ("ticker", "yahoo_finance_ticker", "ltm", "stm", "rating", "price_target_deviation", "beta")
     primary_columns = [c for c in primary_order if c in columns]
     for column in columns:
         if column not in primary_columns:

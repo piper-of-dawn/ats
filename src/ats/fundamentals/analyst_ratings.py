@@ -1,12 +1,11 @@
 from yfinance import Ticker
 import numpy as np
 from math import sqrt
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm.auto import tqdm
 import polars as pl
 import time
 import random
 from ats.dataIO.supabase_integration import fetch_table, batch_insert_polars_df
+from ats.dataIO.utils import with_parallel_runner
 LABELS = ["strongBuy", "buy", "hold", "sell", "strongSell"]
 R = np.array([2, 1, 0, -1, -2])
 
@@ -59,6 +58,12 @@ def sample_confidence(data, lam=0.8, k=10):
     return N_bar / (N_bar + k)
 
 
+@with_parallel_runner(
+    item_name="ticker",
+    result_name="cbs",
+    desc="Computing CBS",
+    unit="ticker",
+)
 def CBS(ticker, lam=0.8, k=10) -> float:
     time.sleep(random.uniform(0.2, 0.75))
     data = pl.DataFrame(Ticker(ticker).get_recommendations_summary()).to_dicts()
@@ -67,32 +72,6 @@ def CBS(ticker, lam=0.8, k=10) -> float:
     T = stability(data, lam)
     S = sample_confidence(data, lam, k)
     return (mu_star / 2) * C_star * T * S
-
-
-def run_cbs_parallel(tickers, max_workers=20):
-    results = []
-    errors = []
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_ticker = {
-            executor.submit(CBS, ticker): ticker
-            for ticker in tickers
-        }
-
-        for future in tqdm(
-            as_completed(future_to_ticker),
-            total=len(future_to_ticker),
-            desc="Computing CBS",
-            unit="ticker",
-        ):
-            ticker = future_to_ticker[future]
-            try:
-                score = future.result()
-                results.append({"ticker": ticker, "cbs": score})
-            except Exception as e:
-                errors.append({"ticker": ticker, "error": str(e)})
-
-    return pl.DataFrame(results), pl.DataFrame(errors)
 
 
 
@@ -108,7 +87,7 @@ def main ():
     df = fetch_table(table_name).drop_nulls()
     tickers = df['yahoo_finance_ticker'].to_list()
     create_consensus_quantile = ((pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)).alias("rating")
-    df = run_cbs_parallel(tickers)[0].with_columns(create_consensus_quantile)
+    df = CBS.parallel(tickers)[0].with_columns(create_consensus_quantile)
     batch_insert_polars_df(df, ["ticker", "rating"], f"{table_name}_ratings", overwrite_conflicts=True, conflict_columns=["ticker"])
     return 0
 
