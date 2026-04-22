@@ -1,5 +1,5 @@
-def repoUrl = System.getenv('ATS_REPO_URL') ?: 'https://github.com/your-org/ats_python.git'
-def repoCredentialsId = System.getenv('ATS_REPO_CREDENTIALS_ID') ?: ''
+def repoUrl = System.getenv('ATS_REPO_URL') ?: 'git@github.com:piper-of-dawn/ats.git'
+def repoCredentialsId = System.getenv('ATS_REPO_CREDENTIALS_ID') ?: 'id_ed25519'
 def buildBranch = System.getenv('ATS_BUILD_BRANCH') ?: 'main'
 
 folder('ATS') {
