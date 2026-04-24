@@ -735,6 +735,39 @@ body.dashboard .card {
   border-bottom: 1px solid var(--table-border-soft);
 }
 
+.table-sort-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-sort-controls label {
+  display: grid;
+  gap: 5px;
+  min-width: 92px;
+}
+
+.table-sort-controls span {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--label-strong);
+  text-transform: uppercase;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.table-sort-controls select {
+  min-height: 32px;
+  border: 1px solid var(--table-border-soft);
+  border-radius: 6px;
+  padding: 6px 28px 6px 9px;
+  background: var(--subtle-surface);
+  color: var(--value-strong);
+  font-size: 12px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
 .table-card-badge {
   flex-shrink: 0;
   padding: 8px 10px;
@@ -1082,6 +1115,19 @@ td.status {
 
   .nav-card-header {
     flex-direction: column;
+  }
+
+  .table-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-sort-controls {
+    justify-content: stretch;
+  }
+
+  .table-sort-controls label {
+    flex: 1 1 130px;
   }
 
   .nav-metric-grid {

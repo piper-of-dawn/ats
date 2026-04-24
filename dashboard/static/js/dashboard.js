@@ -81,6 +81,105 @@
     return slot;
   };
 
+  const parseSortValue = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return { type: "empty", value: "" };
+    }
+
+    const numeric = Number(trimmed.replace(/[%,$£€\s]/g, ""));
+    if (Number.isFinite(numeric)) {
+      return { type: "number", value: numeric };
+    }
+
+    const timestamp = Date.parse(trimmed);
+    if (Number.isFinite(timestamp)) {
+      return { type: "number", value: timestamp };
+    }
+
+    return { type: "text", value: trimmed.toLowerCase() };
+  };
+
+  const compareSortValues = (left, right, direction) => {
+    if (left.type === "empty" && right.type !== "empty") return 1;
+    if (right.type === "empty" && left.type !== "empty") return -1;
+    if (left.value < right.value) return direction === "asc" ? -1 : 1;
+    if (left.value > right.value) return direction === "asc" ? 1 : -1;
+    return 0;
+  };
+
+  const sortElements = (elements, getValue, direction) => {
+    return elements.slice().sort((left, right) => {
+      const result = compareSortValues(
+        parseSortValue(getValue(left)),
+        parseSortValue(getValue(right)),
+        direction,
+      );
+      if (result !== 0) return result;
+      return Number(left.dataset.originalIndex || 0) - Number(right.dataset.originalIndex || 0);
+    });
+  };
+
+  const restoreDefaultOrder = (container, selector) => {
+    const rows = Array.from(container.querySelectorAll(selector));
+    rows
+      .sort((left, right) => Number(left.dataset.originalIndex || 0) - Number(right.dataset.originalIndex || 0))
+      .forEach((row) => container.appendChild(row));
+  };
+
+  const sortTableCard = (card) => {
+    const columnSelect = card.querySelector("[data-table-sort-column]");
+    const directionSelect = card.querySelector("[data-table-sort-direction]");
+    if (!columnSelect || !directionSelect) return;
+
+    const columnIndex = Number(columnSelect.value);
+    const direction = directionSelect.value === "desc" ? "desc" : "asc";
+    const desktopBody = card.querySelector(".desktop-table tbody");
+    const mobileTable = card.querySelector(".mobile-table");
+
+    if (!columnSelect.value) {
+      if (desktopBody) restoreDefaultOrder(desktopBody, "tr[data-original-index]");
+      if (mobileTable) restoreDefaultOrder(mobileTable, ".mobile-row[data-original-index]");
+      return;
+    }
+
+    if (desktopBody) {
+      const sortedRows = sortElements(
+        Array.from(desktopBody.querySelectorAll("tr[data-original-index]")),
+        (row) => row.children[columnIndex]?.textContent || "",
+        direction,
+      );
+      sortedRows.forEach((row) => desktopBody.appendChild(row));
+    }
+
+    if (mobileTable) {
+      const option = columnSelect.options[columnSelect.selectedIndex];
+      const columnName = option?.dataset.columnName || "";
+      const escapedColumnName = window.CSS?.escape ? CSS.escape(columnName) : columnName.replace(/"/g, '\\"');
+      const sortedRows = sortElements(
+        Array.from(mobileTable.querySelectorAll(".mobile-row[data-original-index]")),
+        (row) => row.querySelector(`[data-column-name="${escapedColumnName}"] .mobile-cell-value, [data-column-name="${escapedColumnName}"] .mobile-detail-value`)?.textContent || "",
+        direction,
+      );
+      sortedRows.forEach((row) => mobileTable.appendChild(row));
+    }
+  };
+
+  const initTableSortControls = (root = document) => {
+    root.querySelectorAll("[data-table-sort-controls]").forEach((controls) => {
+      if (controls.dataset.initialized === "true") return;
+      controls.dataset.initialized = "true";
+
+      const card = controls.closest(".card");
+      const columnSelect = controls.querySelector("[data-table-sort-column]");
+      const directionSelect = controls.querySelector("[data-table-sort-direction]");
+      if (!card || !columnSelect || !directionSelect) return;
+
+      columnSelect.addEventListener("change", () => sortTableCard(card));
+      directionSelect.addEventListener("change", () => sortTableCard(card));
+    });
+  };
+
   const renderErrorState = (slot, error) => {
     slot.innerHTML = `
       <div class="card loading-card loading-card-error">
@@ -98,6 +197,9 @@
     for (const slot of slots) {
       try {
         await loadComponentMarkup(slot);
+        if (slot.dataset.componentKind === "table") {
+          initTableSortControls(slot);
+        }
         if (slot.dataset.componentKind === "nav") {
           await window.DashboardCharts?.initNavChart?.(slot);
         }
@@ -112,6 +214,7 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     initThemeToggle();
+    initTableSortControls();
     loadDashboardSequentially();
   });
 })();

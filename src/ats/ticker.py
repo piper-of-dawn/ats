@@ -1,6 +1,7 @@
 import polars as pl
 from ats.yahoo_finance import fetch_price_data
 from ats.helpers import compute_ema_signal, ema_volatility
+from yfinance import Ticker as YfTicker
 import numpy as np
 def log_returns(df: pl.DataFrame) -> pl.DataFrame:
     return df.sort("date").with_columns((pl.col("close") / pl.col("close").shift(1)).log().alias("log_return"))
@@ -15,8 +16,9 @@ def winsorize_log_returns_inplace(df: pl.DataFrame, return_col="log_return", thr
     c = pl.col(return_col)
     return df.with_columns(pl.when(c.abs() > cap).then(c.sign() * cap).otherwise(c).alias(return_col))
 
-class EquityTicker:
+class EquityTicker(YfTicker):
     def __init__(self, ticker: str, mkt_index: "EquityTicker|None" = None):
+        super().__init__(ticker)
         self.ticker, self.mkt_index, self.price_data = ticker, mkt_index, None
 
     def _require_data(self, who="ticker"):
@@ -81,3 +83,23 @@ class EquityTicker:
         stm = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
         self.stm = self.__weighted_avg_tail__(5, stm)
         return self
+    
+    def _get_stm_series(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}):
+        self._require_data()
+        eta = np.log(2) / half_life
+        stm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
+        return stm_series
+    
+    def _get_ltm_series(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}):
+        self._require_data()
+        eta = np.log(2) / half_life
+        ltm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
+        return ltm_series
+    
+    def plot(self, what=np.ndarray):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Please install it with 'pip install matplotlib'.")
+        plt.plot(what)
+        plt.show()
