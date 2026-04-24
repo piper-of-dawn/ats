@@ -48,6 +48,9 @@ _COLUMN_LABELS = {
     "price_target_deviation": "Price Target Dev",
 }
 
+_DASHBOARD_FETCH_LIMIT = 50
+_DASHBOARD_DISPLAY_LIMIT = 10
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -65,6 +68,7 @@ def get_dashboard_context(table_name: str) -> dict:
         "rows": rows_df.to_dicts(),
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
+        "display_limit": _DASHBOARD_DISPLAY_LIMIT,
         "as_of_date": selected_date,
         "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
     }
@@ -215,7 +219,7 @@ def fetch_rows_for_selected_date(
 ):
     if selected_date is None:
         return empty_table_frame(table_name, columns=columns)
-    return fetch_top_rows_for_date(table_name, selected_date, limit=10, columns=columns)
+    return fetch_top_rows_for_date(table_name, selected_date, limit=_DASHBOARD_FETCH_LIMIT, columns=columns)
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:

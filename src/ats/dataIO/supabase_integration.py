@@ -193,16 +193,11 @@ def fetch_top_rows_for_date(
             selected_columns.append(col)
 
     query = sql.SQL("""
-        WITH top_ltm AS (
-            SELECT {columns}
-            FROM {table}
-            WHERE CAST({date_col} AS DATE) = %s
-            ORDER BY ltm DESC NULLS LAST
-            LIMIT %s
-        )
         SELECT {columns}
-        FROM top_ltm
+        FROM {table}
+        WHERE CAST({date_col} AS DATE) = %s
         ORDER BY stm DESC NULLS LAST
+        LIMIT %s
     """).format(
         columns=sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
         table=sql.Identifier(table_name),

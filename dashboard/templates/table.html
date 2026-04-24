@@ -1,13 +1,13 @@
-<div class="card panel">
+{% set visible_limit = display_limit|default(10) %}
+<div class="card panel" data-table-display-limit="{{ visible_limit }}">
   <div class="table-card-header">
     <div class="table-card-title">{{ display_title }}</div>
     <div class="table-sort-controls" data-table-sort-controls>
       <label>
         <span>Sort</span>
         <select data-table-sort-column aria-label="Sort column">
-          <option value="">Default</option>
           {% for col in columns %}
-          <option value="{{ loop.index0 }}" data-column-name="{{ col }}">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
+          <option value="{{ loop.index0 }}" data-column-name="{{ col }}" {% if col.lower() == "stm" %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
           {% endfor %}
         </select>
       </label>
@@ -15,7 +15,7 @@
         <span>Order</span>
         <select data-table-sort-direction aria-label="Sort direction">
           <option value="asc">Asc</option>
-          <option value="desc">Desc</option>
+          <option value="desc" selected>Desc</option>
         </select>
       </label>
     </div>
@@ -31,7 +31,7 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr data-original-index="{{ loop.index0 }}">
+        <tr data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
           {% for col in columns %}
           <td class="{% if 'status' in col.lower() %}status{% endif %}">{{ row.get(col, "") if row.get(col, "") is not none else "" }}</td>
           {% endfor %}
@@ -42,7 +42,7 @@
   </div>
   <div class="mobile-table">
     {% for row in rows %}
-    <details class="mobile-row" data-original-index="{{ loop.index0 }}">
+    <details class="mobile-row" data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
       <summary class="mobile-row-summary">
         {% for col in mobile_primary_columns %}
         <div class="mobile-cell" data-column-name="{{ col }}">

@@ -120,11 +120,10 @@
     });
   };
 
-  const restoreDefaultOrder = (container, selector) => {
-    const rows = Array.from(container.querySelectorAll(selector));
-    rows
-      .sort((left, right) => Number(left.dataset.originalIndex || 0) - Number(right.dataset.originalIndex || 0))
-      .forEach((row) => container.appendChild(row));
+  const applyDisplayLimit = (elements, limit) => {
+    elements.forEach((element, index) => {
+      element.hidden = index >= limit;
+    });
   };
 
   const sortTableCard = (card) => {
@@ -136,12 +135,7 @@
     const direction = directionSelect.value === "desc" ? "desc" : "asc";
     const desktopBody = card.querySelector(".desktop-table tbody");
     const mobileTable = card.querySelector(".mobile-table");
-
-    if (!columnSelect.value) {
-      if (desktopBody) restoreDefaultOrder(desktopBody, "tr[data-original-index]");
-      if (mobileTable) restoreDefaultOrder(mobileTable, ".mobile-row[data-original-index]");
-      return;
-    }
+    const displayLimit = Number(card.dataset.tableDisplayLimit || 10);
 
     if (desktopBody) {
       const sortedRows = sortElements(
@@ -150,6 +144,7 @@
         direction,
       );
       sortedRows.forEach((row) => desktopBody.appendChild(row));
+      applyDisplayLimit(sortedRows, displayLimit);
     }
 
     if (mobileTable) {
@@ -162,6 +157,7 @@
         direction,
       );
       sortedRows.forEach((row) => mobileTable.appendChild(row));
+      applyDisplayLimit(sortedRows, displayLimit);
     }
   };
 
@@ -177,6 +173,7 @@
 
       columnSelect.addEventListener("change", () => sortTableCard(card));
       directionSelect.addEventListener("change", () => sortTableCard(card));
+      sortTableCard(card);
     });
   };
 
