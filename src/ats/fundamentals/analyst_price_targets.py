@@ -4,7 +4,7 @@ import time
 import random
 import polars as pl
 from ats.dataIO.supabase_integration import fetch_table, batch_insert_polars_df
-from ats.dataIO.utils import with_parallel_runner, build_metric_pivot_frame
+from ats.dataIO.utils import with_parallel_runner
 
 def median_centered_score(d: dict) -> float:
     current = float(d["current"])
@@ -54,8 +54,6 @@ def main():
         overwrite_conflicts=True,
         conflict_columns=["ticker", "as_of_date"],
     )
-    pivot_df = build_metric_pivot_frame(df, ["analyst_price_target_deviation"])
-    batch_insert_polars_df(pivot_df, ["created_at", "ticker", "metric", "value"], "pivot")
     return 0
 
 

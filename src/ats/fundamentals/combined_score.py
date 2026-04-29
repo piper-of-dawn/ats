@@ -7,7 +7,6 @@ from ats.dataIO.supabase_integration import (
     fetch_recent_dates,
     fetch_rows_for_date,
 )
-from ats.dataIO.utils import build_metric_pivot_frame
 
 
 METRIC_WEIGHTS = {
@@ -143,12 +142,6 @@ def main():
         metrics_table,
         overwrite_conflicts=True,
         conflict_columns=["ticker", "as_of_date"],
-    )
-    pivot_df = build_metric_pivot_frame(df, ["combined_score"])
-    batch_insert_polars_df(
-        pivot_df,
-        ["created_at", "ticker", "metric", "value"],
-        "pivot",
     )
     return 0
 

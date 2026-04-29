@@ -8,7 +8,7 @@ import polars as pl
 from yfinance import Ticker
 
 from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
-from ats.dataIO.utils import build_metric_pivot_frame, with_parallel_runner
+from ats.dataIO.utils import with_parallel_runner
 
 LABELS = ["strongBuy", "buy", "hold", "sell", "strongSell"]
 R = np.array([2, 1, 0, -1, -2])
@@ -104,13 +104,6 @@ def main():
         f"{table_name}_metrics",
         overwrite_conflicts=True,
         conflict_columns=["ticker", "as_of_date"],
-    )
-    pivot_df = build_metric_pivot_frame(
-        df.rename({"analyst_rating": "rating_quantile"}),
-        ["rating_quantile"],
-    )
-    batch_insert_polars_df(
-        pivot_df, ["created_at", "ticker", "metric", "value"], "pivot"
     )
     return 0
 
