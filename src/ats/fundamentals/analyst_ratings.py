@@ -1,15 +1,18 @@
-from yfinance import Ticker
-import numpy as np
-from math import sqrt
-import polars as pl
-import time
 import random
-from ats.dataIO.supabase_integration import fetch_table, batch_insert_polars_df
-from ats.dataIO.utils import with_parallel_runner, build_metric_pivot_frame
+import time
+from datetime import date
+from math import sqrt
+
+import numpy as np
+import polars as pl
+from yfinance import Ticker
+
+from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
+from ats.dataIO.utils import build_metric_pivot_frame, with_parallel_runner
+
 LABELS = ["strongBuy", "buy", "hold", "sell", "strongSell"]
 R = np.array([2, 1, 0, -1, -2])
 
-   
 
 R = {"strongBuy": 2, "buy": 1, "hold": 0, "sell": -1, "strongSell": -2}
 
@@ -74,26 +77,41 @@ def CBS(ticker, lam=0.8, k=10) -> float:
     return (mu_star / 2) * C_star * T * S
 
 
-
-def main ():
+def main():
     import argparse
-    parser = argparse.ArgumentParser(
-        description="Get the latest analyst ratings"
+
+    parser = argparse.ArgumentParser(description="Get the latest analyst ratings")
+    parser.add_argument(
+        "table", nargs="?", help="Table name (positional or via --table)"
     )
-    parser.add_argument("table", nargs="?", help="Table name (positional or via --table)")
-    parser.add_argument("--table", dest="table_named", help="Table name (named argument)")
+    parser.add_argument(
+        "--table", dest="table_named", help="Table name (named argument)"
+    )
     args = parser.parse_args()
     table_name = args.table_named or args.table
     df = fetch_table(table_name).drop_nulls()
-    tickers = df['yahoo_finance_ticker'].to_list()
-    create_consensus_quantile = ((pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)).alias("rating")
-    df = CBS.parallel(tickers)[0].with_columns(create_consensus_quantile)
-    batch_insert_polars_df(df, ["ticker", "rating"], f"{table_name}_ratings", overwrite_conflicts=True, conflict_columns=["ticker"])
+    tickers = df["yahoo_finance_ticker"].to_list()
+    create_consensus_quantile = (
+        (pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)
+    ).alias("analyst_rating")
+    df = CBS.parallel(tickers)[0].with_columns(
+        create_consensus_quantile,
+        pl.lit(date.today()).alias("as_of_date"),
+    )
+    batch_insert_polars_df(
+        df,
+        ["ticker", "as_of_date", "analyst_rating"],
+        f"{table_name}_metrics",
+        overwrite_conflicts=True,
+        conflict_columns=["ticker", "as_of_date"],
+    )
     pivot_df = build_metric_pivot_frame(
-        df.rename({"rating": "rating_quantile"}),
+        df.rename({"analyst_rating": "rating_quantile"}),
         ["rating_quantile"],
     )
-    batch_insert_polars_df(pivot_df, ["created_at", "ticker", "metric", "value"], "pivot")
+    batch_insert_polars_df(
+        pivot_df, ["created_at", "ticker", "metric", "value"], "pivot"
+    )
     return 0
 
 

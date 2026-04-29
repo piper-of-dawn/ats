@@ -52,11 +52,34 @@ pipeline {
                 '''
             }
         }
+
+        stage('Update Analyst Metrics') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    container_name="${CONTAINER_NAME_PREFIX}-analyst-${BUILD_NUMBER}"
+
+                    docker run --rm \
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        --entrypoint sh \
+                        "${IMAGE_NAME}:latest" \
+                        -c '
+                            ats-update-ratings us_largecap &&
+                            ats-update-ratings us_midcap &&
+                            ats-update-price-targets us_largecap &&
+                            ats-update-price-targets us_midcap &&
+                            ats-combined-score us_largecap &&
+                            ats-combined-score us_midcap
+                        '
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo "Completed daily ATS run at 08:00 Europe/Berlin using ${params.IMAGE_NAME}:latest."
+            echo "Completed daily ATS run, analyst metric update, and combined scoring at 08:00 Europe/Berlin using ${params.IMAGE_NAME}:latest."
         }
     }
 }

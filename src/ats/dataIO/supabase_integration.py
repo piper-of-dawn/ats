@@ -104,6 +104,15 @@ def _connect():
     return psycopg.connect(**conn_info)
 
 
+def _rows_to_frame(rows: list[tuple], columns: list[str]) -> pl.DataFrame:
+    return pl.DataFrame(
+        rows,
+        schema=columns,
+        orient="row",
+        infer_schema_length=None,
+    )
+
+
 def fetch_table(table_name: str, columns: list[str] | None = None) -> pl.DataFrame:
     selected_columns = _normalize_requested_columns(get_table_columns(table_name), columns)
     if not selected_columns:
@@ -118,7 +127,7 @@ def fetch_table(table_name: str, columns: list[str] | None = None) -> pl.DataFra
             cur.execute(query)
             rows = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
-    return pl.DataFrame(rows, schema=columns, orient="row")
+    return _rows_to_frame(rows, columns)
 
 
 @lru_cache(maxsize=64)
@@ -169,6 +178,36 @@ def fetch_recent_dates(table_name: str, limit: int = 7) -> list[str]:
             return [row[0].isoformat() for row in cur.fetchall()]
 
 
+def fetch_rows_for_date(
+    table_name: str,
+    selected_date: str,
+    columns: list[str] | None = None,
+) -> pl.DataFrame:
+    available_columns = get_table_columns(table_name)
+    date_column = get_date_column_name(table_name)
+    selected_columns = _normalize_requested_columns(available_columns, columns)
+    if not selected_columns:
+        return pl.DataFrame()
+
+    query = sql.SQL("""
+        SELECT {columns}
+        FROM {table}
+        WHERE CAST({date_col} AS DATE) = %s
+    """).format(
+        columns=sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
+        table=sql.Identifier(table_name),
+        date_col=sql.Identifier(date_column),
+    )
+
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (selected_date,))
+            rows = cur.fetchall()
+            result_columns = [desc[0] for desc in cur.description]
+
+    return _rows_to_frame(rows, result_columns)
+
+
 def get_max_trading212_daily_account_date() -> str | None:
     with _connect() as conn:
         with conn.cursor() as cur:
@@ -189,19 +228,29 @@ def fetch_top_rows_for_date(
 
     required_columns = {date_column, "ltm", "stm"}
     for col in required_columns:
-        if col not in selected_columns:
+        if col in available_columns and col not in selected_columns:
             selected_columns.append(col)
+
+    if "combined_score" in available_columns:
+        order_column = "combined_score"
+    elif "stm" in available_columns:
+        order_column = "stm"
+    else:
+        order_column = date_column
+    if order_column not in selected_columns and order_column in available_columns:
+        selected_columns.append(order_column)
 
     query = sql.SQL("""
         SELECT {columns}
         FROM {table}
         WHERE CAST({date_col} AS DATE) = %s
-        ORDER BY stm DESC NULLS LAST
+        ORDER BY {order_col} DESC NULLS LAST
         LIMIT %s
     """).format(
         columns=sql.SQL(", ").join(sql.Identifier(column) for column in selected_columns),
         table=sql.Identifier(table_name),
         date_col=sql.Identifier(date_column),
+        order_col=sql.Identifier(order_column),
     )
 
     with _connect() as conn:
@@ -210,7 +259,7 @@ def fetch_top_rows_for_date(
             rows = cur.fetchall()
             result_columns = [desc[0] for desc in cur.description]
 
-    return pl.DataFrame(rows, schema=result_columns, orient="row")
+    return _rows_to_frame(rows, result_columns)
 
 
 def empty_table_frame(table_name: str, columns: list[str] | None = None) -> pl.DataFrame:

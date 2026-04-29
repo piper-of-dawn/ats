@@ -23,9 +23,13 @@ from ats.dataIO.supabase_integration import (
 _DASHBOARD_PRIORITY_COLUMNS = (
     "ticker",
     "yahoo_finance_ticker",
+    "combined_score",
     "ltm",
     "stm",
     "beta",
+    "analyst_rating",
+    "rating",
+    "analyst_price_target_deviation",
     "representative_index_ticker",
 )
 
@@ -39,13 +43,10 @@ _TABLE_TITLES = {
     "us_midcap_metrics": "US Midcap Highlights",
 }
 
-_RATINGS_TABLES = {
-    "us_largecap_metrics": "us_largecap_ratings",
-    "us_midcap_metrics": "us_midcap_ratings",
-}
-
 _COLUMN_LABELS = {
-    "price_target_deviation": "Price Target Dev",
+    "combined_score": "Combined Score",
+    "analyst_rating": "Analyst Rating",
+    "analyst_price_target_deviation": "Price Target Dev",
 }
 
 _DASHBOARD_FETCH_LIMIT = 50
@@ -57,7 +58,6 @@ def get_dashboard_context(table_name: str) -> dict:
     available_dates = fetch_recent_dates(table_name, limit=7)
     selected_date = available_dates[0] if available_dates else None
     rows_df = fetch_rows_for_selected_date(table_name, selected_date, columns)
-    rows_df = _join_ratings(table_name, rows_df)
     columns = list(rows_df.columns)
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
@@ -201,19 +201,6 @@ def get_dashboard_columns(table_name: str) -> list[str]:
     return available_columns[:6]
 
 
-def _join_ratings(table_name: str, rows_df: pl.DataFrame) -> pl.DataFrame:
-    ratings_table = _RATINGS_TABLES.get(table_name)
-    if not ratings_table or rows_df.is_empty() or "ticker" not in rows_df.columns:
-        return rows_df
-    try:
-        ratings_df = fetch_table(ratings_table, columns=["ticker", "rating", "price_target_deviation"])
-    except UndefinedTable:
-        return rows_df
-    if ratings_df.is_empty():
-        return rows_df
-    return rows_df.join(ratings_df, on="ticker", how="left")
-
-
 def fetch_rows_for_selected_date(
     table_name: str, selected_date: str | None, columns: list[str]
 ):
@@ -223,7 +210,17 @@ def fetch_rows_for_selected_date(
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
-    primary_order = ("ticker", "yahoo_finance_ticker", "ltm", "stm", "rating", "price_target_deviation", "beta")
+    primary_order = (
+        "ticker",
+        "yahoo_finance_ticker",
+        "combined_score",
+        "ltm",
+        "stm",
+        "analyst_rating",
+        "rating",
+        "analyst_price_target_deviation",
+        "beta",
+    )
     primary_columns = [c for c in primary_order if c in columns]
     for column in columns:
         if column not in primary_columns:

@@ -1,4 +1,5 @@
 {% set visible_limit = display_limit|default(10) %}
+{% set default_sort_column = "combined_score" if "combined_score" in columns else "stm" %}
 <div class="card panel" data-table-display-limit="{{ visible_limit }}">
   <div class="table-card-header">
     <div class="table-card-title">{{ display_title }}</div>
@@ -7,7 +8,7 @@
         <span>Sort</span>
         <select data-table-sort-column aria-label="Sort column">
           {% for col in columns %}
-          <option value="{{ loop.index0 }}" data-column-name="{{ col }}" {% if col.lower() == "stm" %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
+          <option value="{{ loop.index0 }}" data-column-name="{{ col }}" {% if col.lower() == default_sort_column %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
           {% endfor %}
         </select>
       </label>
