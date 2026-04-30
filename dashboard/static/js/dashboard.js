@@ -18,7 +18,7 @@
   };
 
   const rerenderCharts = async () => {
-    const slots = Array.from(document.querySelectorAll(".lazy-slot"));
+    const slots = Array.from(document.querySelectorAll('.lazy-slot[data-loaded="true"]'));
     for (const slot of slots) {
       if (slot.dataset.componentKind === "nav") {
         await window.DashboardCharts?.initNavChart?.(slot);
@@ -187,31 +187,60 @@
     `;
   };
 
-  const loadDashboardSequentially = async () => {
-    await waitForChartLibraries();
-
-    const slots = Array.from(document.querySelectorAll(".lazy-slot"));
-    for (const slot of slots) {
-      try {
-        await loadComponentMarkup(slot);
-        if (slot.dataset.componentKind === "table") {
-          initTableSortControls(slot);
-        }
-        if (slot.dataset.componentKind === "nav") {
-          await window.DashboardCharts?.initNavChart?.(slot);
-        }
-        if (slot.dataset.componentKind === "treemap") {
-          await window.DashboardCharts?.initTreemap?.(slot);
-        }
-      } catch (error) {
-        renderErrorState(slot, error);
+  const hydrateSlot = async (slot) => {
+    if (slot.dataset.loaded === "true" || slot.dataset.loading === "true") return;
+    slot.dataset.loading = "true";
+    try {
+      await loadComponentMarkup(slot);
+      if (slot.dataset.componentKind === "table") {
+        initTableSortControls(slot);
       }
+      if (slot.dataset.componentKind === "nav") {
+        await window.DashboardCharts?.initNavChart?.(slot);
+      }
+      if (slot.dataset.componentKind === "treemap") {
+        await window.DashboardCharts?.initTreemap?.(slot);
+      }
+      slot.dataset.loaded = "true";
+    } catch (error) {
+      renderErrorState(slot, error);
+    } finally {
+      delete slot.dataset.loading;
     }
   };
 
-  window.addEventListener("DOMContentLoaded", () => {
+  const observeLazySlots = () => {
+    const slots = Array.from(document.querySelectorAll(".lazy-slot"));
+    if (!slots.length) return;
+
+    if (!("IntersectionObserver" in window)) {
+      slots.forEach(hydrateSlot);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          obs.unobserve(entry.target);
+          hydrateSlot(entry.target);
+        });
+      },
+      { rootMargin: "200px 0px", threshold: 0.01 },
+    );
+
+    slots.forEach((slot) => observer.observe(slot));
+  };
+
+  window.addEventListener("DOMContentLoaded", async () => {
     initThemeToggle();
     initTableSortControls();
-    loadDashboardSequentially();
+    try {
+      await waitForChartLibraries();
+    } catch (error) {
+      document.querySelectorAll(".lazy-slot").forEach((slot) => renderErrorState(slot, error));
+      return;
+    }
+    observeLazySlots();
   });
 })();
