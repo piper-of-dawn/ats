@@ -2,7 +2,6 @@ FROM python:3.13-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    UV_NO_CACHE=1 \
     PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
