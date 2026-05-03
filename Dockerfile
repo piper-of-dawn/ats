@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM python:3.13-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
@@ -26,6 +24,8 @@ RUN chmod +x \
     /usr/local/bin/run-ats-commands.sh \
     /usr/local/bin/run-ats-ratings.sh \
     /usr/local/bin/cron-entrypoint.sh
+
+COPY dist/*.whl /tmp/dist/
 
 RUN uv pip install --system /tmp/dist/*.whl \
     && rm -rf /tmp/dist
