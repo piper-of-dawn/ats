@@ -18,9 +18,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY --chmod=755 docker/run-ats-commands.sh /usr/local/bin/run-ats-commands.sh
-COPY --chmod=755 docker/run-ats-ratings.sh /usr/local/bin/run-ats-ratings.sh
-COPY dist/*.whl /tmp/dist/
+COPY docker/run-ats-commands.sh /usr/local/bin/run-ats-commands.sh
+COPY docker/run-ats-ratings.sh /usr/local/bin/run-ats-ratings.sh
+COPY docker/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
+
+RUN chmod +x \
+    /usr/local/bin/run-ats-commands.sh \
+    /usr/local/bin/run-ats-ratings.sh \
+    /usr/local/bin/cron-entrypoint.sh
 
 RUN uv pip install --system /tmp/dist/*.whl \
     && rm -rf /tmp/dist
