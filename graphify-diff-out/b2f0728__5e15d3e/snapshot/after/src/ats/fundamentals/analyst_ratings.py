@@ -4,6 +4,8 @@ from datetime import date
 from math import sqrt
 
 import numpy as np
+import polars as pl
+from yfinance import Ticker
 
 from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
 from ats.dataIO.utils import with_parallel_runner
@@ -60,7 +62,7 @@ def sample_confidence(data, lam=0.8, k=10):
 
 
 @with_parallel_runner(
-    
+    item_name="ticker",
     result_name="cbs",
     desc="Computing CBS",
     unit="ticker",

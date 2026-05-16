@@ -1,0 +1,72 @@
+{% set visible_limit = display_limit|default(10) %}
+{% set default_sort_column = "combined_score" if "combined_score" in columns else "stm" %}
+<div class="card panel" data-table-display-limit="{{ visible_limit }}">
+  <div class="table-card-header">
+    <div class="table-card-title">{{ display_title }}</div>
+    <div class="table-sort-controls" data-table-sort-controls>
+      <label>
+        <span>Sort</span>
+        <select data-table-sort-column aria-label="Sort column">
+          {% for col in columns %}
+          <option value="{{ loop.index0 }}" data-column-name="{{ col }}" {% if col.lower() == default_sort_column %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Order</span>
+        <select data-table-sort-direction aria-label="Sort direction">
+          <option value="asc">Asc</option>
+          <option value="desc" selected>Desc</option>
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="table-wrap desktop-table">
+    <table>
+      <thead>
+        <tr>
+          {% for col in columns %}
+          <th data-column-name="{{ col }}">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
+          {% for col in columns %}
+          <td class="{% if 'status' in col.lower() %}status{% endif %}">{{ row.get(col, "") if row.get(col, "") is not none else "" }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mobile-table">
+    {% for row in rows %}
+    <details class="mobile-row" data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
+      <summary class="mobile-row-summary">
+        {% for col in mobile_primary_columns %}
+        <div class="mobile-cell" data-column-name="{{ col }}">
+          <span class="mobile-cell-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
+          <span class="mobile-cell-value {% if 'status' in col.lower() %}status{% endif %}">
+            {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+          </span>
+        </div>
+        {% endfor %}
+      </summary>
+      {% if mobile_detail_columns %}
+      <div class="mobile-row-details">
+        {% for col in mobile_detail_columns %}
+        <div class="mobile-detail-item" data-column-name="{{ col }}">
+          <span class="mobile-detail-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
+          <span class="mobile-detail-value {% if 'status' in col.lower() %}status{% endif %}">
+            {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </details>
+    {% endfor %}
+  </div>
+</div>

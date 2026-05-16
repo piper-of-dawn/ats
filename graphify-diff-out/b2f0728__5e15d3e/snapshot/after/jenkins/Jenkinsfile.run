@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    triggers {
+        cron('TZ=Europe/Berlin\n0 8 * * *')
+    }
+    parameters {
+        string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
+        string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run.')
+        string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-daily', description: 'Prefix used for the transient docker container name.')
+    }
+
+    environment {
+        ATS_COMMANDS = 'us_largecap, us_midcap'
+    }
+
+    stages {
+        stage('Verify Tooling') {
+            steps {
+                sh 'docker --version'
+                sh 'docker info >/dev/null'
+            }
+        }
+
+        stage('Verify Image And Env') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    test -f "${APP_ENV_FILE}"
+                    docker image inspect "${IMAGE_NAME}:latest" >/dev/null
+                '''
+            }
+        }
+
+        stage('Run Commands') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+
+                    docker run --rm \
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        -e ATS_COMMANDS="${ATS_COMMANDS}" \
+                        --entrypoint /usr/local/bin/run-ats-commands.sh \
+                        "${IMAGE_NAME}:latest"
+                '''
+            }
+        }
+
+        stage('Update Analyst Metrics') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    container_name="${CONTAINER_NAME_PREFIX}-analyst-${BUILD_NUMBER}"
+
+                    docker run --rm \
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        --entrypoint sh \
+                        "${IMAGE_NAME}:latest" \
+                        -c '
+                            ats-update-ratings us_largecap &&
+                            ats-update-ratings us_midcap &&
+                            ats-update-price-targets us_largecap &&
+                            ats-update-price-targets us_midcap &&
+                            ats-combined-score us_largecap &&
+                            ats-combined-score us_midcap
+                        '
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Completed daily ATS run, analyst metric update, and combined scoring at 08:00 Europe/Berlin using ${params.IMAGE_NAME}:latest."
+        }
+    }
+}
