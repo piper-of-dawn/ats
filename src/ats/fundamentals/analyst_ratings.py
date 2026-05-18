@@ -2,7 +2,7 @@ import random
 import time
 from datetime import date
 from math import sqrt
-
+import polars as pl
 import numpy as np
 
 from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
