@@ -4,10 +4,9 @@ from datetime import date
 from math import sqrt
 import polars as pl
 import numpy as np
-
 from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
 from ats.dataIO.utils import with_parallel_runner
-
+from yfinance import Ticker
 LABELS = ["strongBuy", "buy", "hold", "sell", "strongSell"]
 R = np.array([2, 1, 0, -1, -2])
 
@@ -88,7 +87,7 @@ def main():
     args = parser.parse_args()
     table_name = args.table_named or args.table
     df = fetch_table(table_name).drop_nulls()
-    tickers = df["yahoo_finance_ticker"].to_list()
+    tickers = df["yahoo_finance_ticker"].to_list()[:5]
     create_consensus_quantile = (
         (pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2)
     ).alias("analyst_rating")
