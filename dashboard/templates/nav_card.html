@@ -3,7 +3,9 @@
     <div class="nav-card-header-primary">
       <div class="nav-card-title">Fund NAV</div>
       <div class="nav-card-header-metric">
-        <div class="nav-card-header-value">{{ nav_context.latest_nav }}</div>
+        <div class="nav-card-header-value">
+          <span class="nav-card-currency">{{ nav_context.latest_nav[:1] }}</span>{{ nav_context.latest_nav[1:] }}
+        </div>
         <div class="nav-card-header-change {{ 'positive' if nav_context.change_positive else 'negative' }}">
           {{ nav_context.day_change }} {{ nav_context.day_change_pct }}
         </div>

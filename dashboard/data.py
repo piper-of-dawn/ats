@@ -234,9 +234,9 @@ def _compute_max_upside(nav_values: list[float]) -> float:
 
 def _format_chart_label(value: date | datetime | str) -> str:
     if isinstance(value, datetime):
-        return value.strftime("%b %-d, %Y")
+        return _format_display_date(value)
     if isinstance(value, date):
-        return value.strftime("%b %-d, %Y")
+        return _format_display_date(value)
     return str(value)
 
 
@@ -250,10 +250,14 @@ def _format_raw_date(value: date | datetime | str) -> str:
 
 def _format_header_date(value: date | datetime | str) -> str:
     if isinstance(value, datetime):
-        return value.strftime("%b %-d, %Y")
+        return _format_display_date(value)
     if isinstance(value, date):
-        return value.strftime("%b %-d, %Y")
+        return _format_display_date(value)
     return str(value)
+
+
+def _format_display_date(value: date | datetime) -> str:
+    return f"{value.strftime('%b')} {value.day}, {value.year}"
 
 
 def _format_currency(value: float) -> str:

@@ -157,7 +157,7 @@ body {
   width: 100%;
   background: var(--card);
   border: 1px solid var(--card-border);
-  border-radius: 18px;
+  border-radius: 24px;
   box-shadow:
     0 0 0 1px var(--card-outline),
     var(--card-shadow),
@@ -311,10 +311,17 @@ body.dashboard .card {
   font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 3rem;
   line-height: 0.95;
-  letter-spacing: -0.07em;
   color: var(--value-strong);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "liga" 0;
+}
+
+.nav-card-currency {
+  display: inline-block;
+  font-size: 0.42em;
+  line-height: 1;
+  vertical-align: 0.52em;
+  margin-right: 0.14em;
 }
 
 .nav-card-header-change {
@@ -429,7 +436,7 @@ body.dashboard .card {
 .nav-metric-card {
   padding: 16px 18px 14px;
   border: 1px solid var(--metric-card-border);
-  border-radius: 4px;
+  border-radius: 14px;
   background: var(--metric-card-bg);
   box-shadow:
     inset 0 1px 0 var(--metric-card-highlight),

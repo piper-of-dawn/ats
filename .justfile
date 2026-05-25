@@ -1,3 +1,5 @@
+set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
+
 build:
     uv build --wheel
 
