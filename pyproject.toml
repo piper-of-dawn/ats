@@ -21,6 +21,7 @@ dependencies = [
     "pyarrow>=23.0.1",
     "tqdm>=4.67.3",
     "yfinance>=1.2.0",
+    "scipy>=1.17.1"
 ]
 
 [dependency-groups]
@@ -32,11 +33,15 @@ dev = [
 
 [project.scripts]
 ats = "ats.cli:main"
+ats-combined-score = "ats.fundamentals.combined_score:main"
+ats-update-price-targets = "ats.fundamentals.analyst_price_targets:main"
+ats-update-ratings = "ats.fundamentals.analyst_ratings:main"
 dashboard-local = "ats.dashboard:run"
 gmail-downloader = "ats.gmail_downloader:main"
 trading212-gmail-sync = "ats.gmail_sync:main"
 gmail-fund-nav-sync = "ats.gmail_sync:main"
 announce-fund-nav = "ats.announce_fund_nav:main"
+
 
 [tool.setuptools]
 package-dir = {"" = "src"}

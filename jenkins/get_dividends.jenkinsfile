@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
+        string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run for DB access.')
+        string(name: 'TABLE_NAME', defaultValue: 'us_largecap', description: 'Source table used to fetch yahoo_finance_ticker values.')
+        string(name: 'OUTPUT_DIR', defaultValue: '/var/lib/jenkins/ats-dividends', description: 'Persistent host directory where dividend JSON files are written.')
+        string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-dividends', description: 'Prefix used for the transient docker container name.')
+    }
+
+    environment {
+        SECRETS_TOML_PATH = "${WORKSPACE}/env.${BUILD_NUMBER}.toml"
+    }
+
+    stages {
+        stage('Verify Tooling') {
+            steps {
+                sh 'docker --version'
+                sh 'docker info >/dev/null'
+            }
+        }
+
+        stage('Verify Image And Env') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    test -f "${APP_ENV_FILE}"
+                    docker image inspect "${IMAGE_NAME}:latest" >/dev/null
+                '''
+            }
+        }
+
+        stage('Prepare Runtime Secrets') {
+            steps {
+                script {
+                    withCredentials([
+                        file(credentialsId: 'keys', variable: 'POLYGON_KEYS_FILE'),
+                    ]) {
+                        sh '''
+                            set -euo pipefail
+                            install -m 600 "${POLYGON_KEYS_FILE}" "${SECRETS_TOML_PATH}"
+                            mkdir -p "${OUTPUT_DIR}"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Run Dividends Export') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+
+                    docker run --rm \
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        -v "${OUTPUT_DIR}:/app/output" \
+                        -v "${SECRETS_TOML_PATH}:/app/env.toml:ro" \
+                        "${IMAGE_NAME}:latest" \
+                        python3.13 -m ats.get_dividends_data "${TABLE_NAME}" /app/output /app/env.toml
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh '''
+                set +e
+                rm -f "${SECRETS_TOML_PATH}"
+            '''
+        }
+        success {
+            echo "Completed dividend export for ${params.TABLE_NAME} using ${params.IMAGE_NAME}:latest."
+        }
+    }
+}

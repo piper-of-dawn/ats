@@ -15,8 +15,6 @@ pipeline {
         string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run for DB access.')
         string(name: 'GMAIL_RUNTIME_DIR', defaultValue: '/var/lib/jenkins/ats-gmail', description: 'Persistent host directory for Gmail output, token, and generated env file.')
         string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-gmail', description: 'Prefix used for the transient docker container name.')
-        string(name: 'GMAIL_CLIENT_SECRET_CREDENTIAL_ID', defaultValue: 'gmail-oauth-client-secret', description: 'Jenkins Secret file credential ID for the Google Desktop OAuth client JSON.')
-        string(name: 'GMAIL_TOKEN_BOOTSTRAP_CREDENTIAL_ID', defaultValue: '', description: 'Optional Jenkins Secret file credential ID for an initial token.json bootstrap. Used only when the runtime token file does not exist yet.')
         string(name: 'GMAIL_QUERY', defaultValue: 'from:(trading212.com) (subject:"statement" OR subject:"account statement" OR subject:"Trading 212") has:attachment filename:pdf', description: 'Gmail search query used by gmail-downloader.')
         string(name: 'MAX_RESULTS', defaultValue: '200', description: 'Maximum Gmail messages to inspect per run.')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Preview matches without downloading PDFs or writing to the database.')
@@ -43,29 +41,19 @@ pipeline {
         stage('Prepare Gmail Runtime') {
             steps {
                 script {
-                    def bindings = [
-                        file(credentialsId: params.GMAIL_CLIENT_SECRET_CREDENTIAL_ID, variable: 'GMAIL_CLIENT_SECRET_FILE'),
-                    ]
-                    if (params.GMAIL_TOKEN_BOOTSTRAP_CREDENTIAL_ID?.trim()) {
-                        bindings << file(
-                            credentialsId: params.GMAIL_TOKEN_BOOTSTRAP_CREDENTIAL_ID.trim(),
-                            variable: 'GMAIL_TOKEN_BOOTSTRAP_FILE',
-                        )
-                    }
-
-                    withCredentials(bindings) {
+                    withCredentials([
+                        file(credentialsId: 'gmail-oauth-client-secret', variable: 'GMAIL_CLIENT_SECRET_FILE'),
+                        file(credentialsId: 'gmail-oauth-token-bootstrap', variable: 'GMAIL_TOKEN_BOOTSTRAP_FILE'),
+                    ]) {
                         sh '''
                             set -euo pipefail
                             runtime_dir="${GMAIL_RUNTIME_DIR}"
                             mkdir -p "${runtime_dir}/config" "${runtime_dir}/output" "${runtime_dir}/secrets"
                             install -m 600 "${GMAIL_CLIENT_SECRET_FILE}" "${runtime_dir}/secrets/secret.json"
-
-                            if [ ! -f "${runtime_dir}/config/token.json" ] && [ -n "${GMAIL_TOKEN_BOOTSTRAP_FILE:-}" ]; then
-                                install -m 600 "${GMAIL_TOKEN_BOOTSTRAP_FILE}" "${runtime_dir}/config/token.json"
-                            fi
+                            install -m 600 "${GMAIL_TOKEN_BOOTSTRAP_FILE}" "${runtime_dir}/config/token.json"
 
                             if [ ! -f "${runtime_dir}/config/token.json" ]; then
-                                echo "Missing ${runtime_dir}/config/token.json. Provide GMAIL_TOKEN_BOOTSTRAP_CREDENTIAL_ID for the first run." >&2
+                                echo "Missing ${runtime_dir}/config/token.json after checking Jenkins credential gmail-oauth-token-bootstrap." >&2
                                 exit 1
                             fi
 
@@ -91,17 +79,18 @@ EOF
                 sh '''
                     set -euo pipefail
                     container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+                    runtime_dir="${GMAIL_RUNTIME_DIR}"
 
                     docker run --rm \
-                    --name ats-gmail-11 \
-                    --env-file /var/lib/jenkins/ats/app.env \
-                    --env-file /var/lib/jenkins/ats-gmail/gmail.env \
-                    -v /var/lib/jenkins/ats-gmail/output:/app/output \
-                    -v /var/lib/jenkins/ats-gmail/config:/app/config \
-                    -v /var/lib/jenkins/ats-gmail/secrets:/app/secrets:ro \
-                    --entrypoint sh \
-                    ats:latest \
-                    -c 'trading212-gmail-sync && announce-fund-nav'
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        --env-file "${runtime_dir}/gmail.env" \
+                        -v "${runtime_dir}/output:/app/output" \
+                        -v "${runtime_dir}/config:/app/config" \
+                        -v "${runtime_dir}/secrets:/app/secrets:ro" \
+                        --entrypoint sh \
+                        "${IMAGE_NAME}:latest" \
+                        -c 'trading212-gmail-sync && announce-fund-nav'
                 '''
             }
         }

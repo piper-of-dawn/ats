@@ -9,6 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .env
+env.toml
 DATA/
 .diag/
 notebooks/

@@ -20,6 +20,22 @@
             "cwd": "${workspaceFolder}"
         },
         {
+            "name": "Python: ats-update-ratings",
+            "type": "python",
+            "request": "launch",
+            "module": "ats.fundamentals.analyst_ratings",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "args": [
+                "us_largecap"
+            ]
+        },
+        {
             "name": "Python: Module",
             "type": "python",
             "request": "launch",
@@ -47,6 +63,14 @@
             "justMyCode": true,
             "cwd": "${workspaceFolder}",
             "args": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "ratingsTable",
+            "type": "promptString",
+            "description": "Supabase source table for ats-update-ratings",
+            "default": "us_largecap"
         }
     ]
 }

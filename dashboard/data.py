@@ -23,9 +23,13 @@ from ats.dataIO.supabase_integration import (
 _DASHBOARD_PRIORITY_COLUMNS = (
     "ticker",
     "yahoo_finance_ticker",
+    "combined_score",
     "ltm",
     "stm",
     "beta",
+    "analyst_rating",
+    "rating",
+    "analyst_price_target_deviation",
     "representative_index_ticker",
 )
 
@@ -39,6 +43,15 @@ _TABLE_TITLES = {
     "us_midcap_metrics": "US Midcap Highlights",
 }
 
+_COLUMN_LABELS = {
+    "combined_score": "Combined Score",
+    "analyst_rating": "Analyst Rating",
+    "analyst_price_target_deviation": "Price Target Dev",
+}
+
+_DASHBOARD_FETCH_LIMIT = 50
+_DASHBOARD_DISPLAY_LIMIT = 10
+
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -51,9 +64,11 @@ def get_dashboard_context(table_name: str) -> dict:
         "table_name": table_name,
         "display_title": _TABLE_TITLES.get(table_name, table_name.replace("_", " ").title()),
         "columns": columns,
+        "column_labels": {column: _COLUMN_LABELS.get(column, column.replace("_", " ").upper()) for column in columns},
         "rows": rows_df.to_dicts(),
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
+        "display_limit": _DASHBOARD_DISPLAY_LIMIT,
         "as_of_date": selected_date,
         "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
     }
@@ -191,18 +206,26 @@ def fetch_rows_for_selected_date(
 ):
     if selected_date is None:
         return empty_table_frame(table_name, columns=columns)
-    return fetch_top_rows_for_date(table_name, selected_date, limit=10, columns=columns)
+    return fetch_top_rows_for_date(table_name, selected_date, limit=_DASHBOARD_FETCH_LIMIT, columns=columns)
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
-    primary_columns = []
-    for candidate in ("ticker", "yahoo_finance_ticker", "ltm", "stm"):
-        if candidate in columns and candidate not in primary_columns:
-            primary_columns.append(candidate)
-    if not primary_columns:
-        primary_columns = columns[:3]
-    detail_columns = [column for column in columns if column not in primary_columns]
-    return primary_columns, detail_columns
+    primary_order = (
+        "ticker",
+        "yahoo_finance_ticker",
+        "combined_score",
+        "ltm",
+        "stm",
+        "analyst_rating",
+        "rating",
+        "analyst_price_target_deviation",
+        "beta",
+    )
+    primary_columns = [c for c in primary_order if c in columns]
+    for column in columns:
+        if column not in primary_columns:
+            primary_columns.append(column)
+    return primary_columns, []
 
 
 def _find_column_name(columns: list[str], target: str) -> str:

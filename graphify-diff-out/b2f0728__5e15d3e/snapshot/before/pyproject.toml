@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ats"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dotenv>=0.9.9",
+    "flask>=3.0.0",
+    "google-api-python-client>=2.192.0",
+    "google-auth>=2.49.1",
+    "google-auth-oauthlib>=1.3.0",
+    "numpy>=1.20.0",
+    "pandas>=3.0.1",
+    "polars>=1.38.1",
+    "psycopg>=3.3.3",
+    "pyarrow>=23.0.1",
+    "tqdm>=4.67.3",
+    "yfinance>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "altair>=6.0.0",
+    "matplotlib>=3.10.8",
+    "pytest>=8.3.0",
+]
+
+[project.scripts]
+ats = "ats.cli:main"
+ats-update-ratings = "ats.fundamentals.analyst_ratings:main"
+dashboard-local = "ats.dashboard:run"
+gmail-downloader = "ats.gmail_downloader:main"
+trading212-gmail-sync = "ats.gmail_sync:main"
+gmail-fund-nav-sync = "ats.gmail_sync:main"
+announce-fund-nav = "ats.announce_fund_nav:main"
+
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

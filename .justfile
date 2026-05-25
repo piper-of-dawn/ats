@@ -8,3 +8,6 @@ host-web host="0.0.0.0" port="8000":
 
 install:
     uv pip install -e .
+
+venv:
+    source .venv/Scripts/activate

@@ -1,0 +1,3037 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "helpers.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L1",
+      "community": 4,
+      "norm_label": "helpers.py",
+      "id": "after_src_ats_helpers_py"
+    },
+    {
+      "label": "compute_ema_signal()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L10",
+      "community": 4,
+      "norm_label": "compute_ema_signal()",
+      "id": "ats_helpers_compute_ema_signal"
+    },
+    {
+      "label": "ema_volatility()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L33",
+      "community": 4,
+      "norm_label": "ema_volatility()",
+      "id": "ats_helpers_ema_volatility"
+    },
+    {
+      "label": "_validate_garch_params()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L49",
+      "community": 4,
+      "norm_label": "_validate_garch_params()",
+      "id": "ats_helpers_validate_garch_params"
+    },
+    {
+      "label": "_compute_garch_sigma2()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L64",
+      "community": 4,
+      "norm_label": "_compute_garch_sigma2()",
+      "id": "ats_helpers_compute_garch_sigma2"
+    },
+    {
+      "label": "calibrate()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L87",
+      "community": 4,
+      "norm_label": "calibrate()",
+      "id": "ats_helpers_calibrate"
+    },
+    {
+      "label": "garch_mle_calibration()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L117",
+      "community": 4,
+      "norm_label": "garch_mle_calibration()",
+      "id": "ats_helpers_garch_mle_calibration"
+    },
+    {
+      "label": "garch_volatility()",
+      "file_type": "code",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L163",
+      "community": 4,
+      "norm_label": "garch_volatility()",
+      "id": "ats_helpers_garch_volatility"
+    },
+    {
+      "label": "ticker.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L1",
+      "community": 0,
+      "norm_label": "ticker.py",
+      "id": "after_src_ats_ticker_py"
+    },
+    {
+      "label": "log_returns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L6",
+      "community": 0,
+      "norm_label": "log_returns()",
+      "id": "ats_ticker_log_returns"
+    },
+    {
+      "label": "winsorize_log_returns_inplace()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L9",
+      "community": 0,
+      "norm_label": "winsorize_log_returns_inplace()",
+      "id": "ats_ticker_winsorize_log_returns_inplace"
+    },
+    {
+      "label": "EquityTicker",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L19",
+      "community": 0,
+      "norm_label": "equityticker",
+      "id": "ats_ticker_equityticker"
+    },
+    {
+      "label": "YfTicker",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "community": 0,
+      "norm_label": "yfticker",
+      "id": "yfticker"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L20",
+      "community": 0,
+      "norm_label": ".__init__()",
+      "id": "ats_ticker_equityticker_init"
+    },
+    {
+      "label": "._require_data()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L24",
+      "community": 0,
+      "norm_label": "._require_data()",
+      "id": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "label": ".fetch_price_data()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L28",
+      "community": 0,
+      "norm_label": ".fetch_price_data()",
+      "id": "ats_ticker_equityticker_fetch_price_data"
+    },
+    {
+      "label": ".make_log_returns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L33",
+      "community": 0,
+      "norm_label": ".make_log_returns()",
+      "id": "ats_ticker_equityticker_make_log_returns"
+    },
+    {
+      "label": ".winsorize_log_returns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L38",
+      "community": 0,
+      "norm_label": ".winsorize_log_returns()",
+      "id": "ats_ticker_equityticker_winsorize_log_returns"
+    },
+    {
+      "label": ".join_with_market_index()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L43",
+      "community": 0,
+      "norm_label": ".join_with_market_index()",
+      "id": "ats_ticker_equityticker_join_with_market_index"
+    },
+    {
+      "label": ".compute_beta()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L51",
+      "community": 0,
+      "norm_label": ".compute_beta()",
+      "id": "ats_ticker_equityticker_compute_beta"
+    },
+    {
+      "label": ".get_idiosyncratic_returns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L62",
+      "community": 0,
+      "norm_label": ".get_idiosyncratic_returns()",
+      "id": "ats_ticker_equityticker_get_idiosyncratic_returns"
+    },
+    {
+      "label": ".__weighted_avg_tail__()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L69",
+      "community": 0,
+      "norm_label": ".__weighted_avg_tail__()",
+      "id": "ats_ticker_equityticker_weighted_avg_tail"
+    },
+    {
+      "label": ".get_long_term_momentum_signal()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L73",
+      "community": 0,
+      "norm_label": ".get_long_term_momentum_signal()",
+      "id": "ats_ticker_equityticker_get_long_term_momentum_signal"
+    },
+    {
+      "label": ".get_short_term_momentum_signal()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L80",
+      "community": 0,
+      "norm_label": ".get_short_term_momentum_signal()",
+      "id": "ats_ticker_equityticker_get_short_term_momentum_signal"
+    },
+    {
+      "label": "._get_stm_series()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L87",
+      "community": 0,
+      "norm_label": "._get_stm_series()",
+      "id": "ats_ticker_equityticker_get_stm_series"
+    },
+    {
+      "label": "._get_ltm_series()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L93",
+      "community": 0,
+      "norm_label": "._get_ltm_series()",
+      "id": "ats_ticker_equityticker_get_ltm_series"
+    },
+    {
+      "label": ".plot()",
+      "file_type": "code",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L99",
+      "community": 0,
+      "norm_label": ".plot()",
+      "id": "ats_ticker_equityticker_plot"
+    },
+    {
+      "label": "analyst_price_targets.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_price_targets.py",
+      "source_location": "L1",
+      "community": 5,
+      "norm_label": "analyst_price_targets.py",
+      "id": "after_src_ats_fundamentals_analyst_price_targets_py"
+    },
+    {
+      "label": "median_centered_score()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_price_targets.py",
+      "source_location": "L9",
+      "community": 5,
+      "norm_label": "median_centered_score()",
+      "id": "fundamentals_analyst_price_targets_median_centered_score"
+    },
+    {
+      "label": "combined_score.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L1",
+      "community": 5,
+      "norm_label": "combined_score.py",
+      "id": "after_src_ats_fundamentals_combined_score_py"
+    },
+    {
+      "label": "_metric_quantile_name()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L29",
+      "community": 5,
+      "norm_label": "_metric_quantile_name()",
+      "id": "fundamentals_combined_score_metric_quantile_name"
+    },
+    {
+      "label": "_resolve_metric_columns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L33",
+      "community": 5,
+      "norm_label": "_resolve_metric_columns()",
+      "id": "fundamentals_combined_score_resolve_metric_columns"
+    },
+    {
+      "label": "add_metric_quantiles()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L47",
+      "community": 5,
+      "norm_label": "add_metric_quantiles()",
+      "id": "fundamentals_combined_score_add_metric_quantiles"
+    },
+    {
+      "label": "add_weighted_combined_score()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L62",
+      "community": 5,
+      "norm_label": "add_weighted_combined_score()",
+      "id": "fundamentals_combined_score_add_weighted_combined_score"
+    },
+    {
+      "label": "compute_combined_score()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L99",
+      "community": 5,
+      "norm_label": "compute_combined_score()",
+      "id": "fundamentals_combined_score_compute_combined_score"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L123",
+      "community": 5,
+      "norm_label": "main()",
+      "id": "fundamentals_combined_score_main"
+    },
+    {
+      "label": "combined_score_i = sum(w_j * q_ij) / sum(w_j)     where q_ij is ticker i's quant",
+      "file_type": "rationale",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L66",
+      "community": 5,
+      "norm_label": "combined_score_i = sum(w_j * q_ij) / sum(w_j)     where q_ij is ticker i's quant",
+      "id": "fundamentals_combined_score_rationale_66"
+    },
+    {
+      "label": "analyst_ratings.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L1",
+      "community": 6,
+      "norm_label": "analyst_ratings.py",
+      "id": "after_src_ats_fundamentals_analyst_ratings_py"
+    },
+    {
+      "label": "weights()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L20",
+      "community": 6,
+      "norm_label": "weights()",
+      "id": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "label": "mu_t()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L25",
+      "community": 6,
+      "norm_label": "mu_t()",
+      "id": "fundamentals_analyst_ratings_mu_t"
+    },
+    {
+      "label": "C_t()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L30",
+      "community": 6,
+      "norm_label": "c_t()",
+      "id": "fundamentals_analyst_ratings_c_t"
+    },
+    {
+      "label": "direction()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L37",
+      "community": 6,
+      "norm_label": "direction()",
+      "id": "fundamentals_analyst_ratings_direction"
+    },
+    {
+      "label": "agreement()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L43",
+      "community": 6,
+      "norm_label": "agreement()",
+      "id": "fundamentals_analyst_ratings_agreement"
+    },
+    {
+      "label": "stability()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L49",
+      "community": 6,
+      "norm_label": "stability()",
+      "id": "fundamentals_analyst_ratings_stability"
+    },
+    {
+      "label": "sample_confidence()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L57",
+      "community": 6,
+      "norm_label": "sample_confidence()",
+      "id": "fundamentals_analyst_ratings_sample_confidence"
+    },
+    {
+      "label": "CBS()",
+      "file_type": "code",
+      "source_file": "after/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L70",
+      "community": 6,
+      "norm_label": "cbs()",
+      "id": "fundamentals_analyst_ratings_cbs"
+    },
+    {
+      "label": "utils.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/utils.py",
+      "source_location": "L1",
+      "community": 7,
+      "norm_label": "utils.py",
+      "id": "after_src_ats_dataio_utils_py"
+    },
+    {
+      "label": "with_parallel_runner()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/utils.py",
+      "source_location": "L9",
+      "community": 7,
+      "norm_label": "with_parallel_runner()",
+      "id": "dataio_utils_with_parallel_runner"
+    },
+    {
+      "label": "build_metric_pivot_frame()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/utils.py",
+      "source_location": "L55",
+      "community": 7,
+      "norm_label": "build_metric_pivot_frame()",
+      "id": "dataio_utils_build_metric_pivot_frame"
+    },
+    {
+      "label": "supabase_integration.py",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L1",
+      "community": 1,
+      "norm_label": "supabase_integration.py",
+      "id": "after_src_ats_dataio_supabase_integration_py"
+    },
+    {
+      "label": "_sanitize_postgres_dsn()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L50",
+      "community": 1,
+      "norm_label": "_sanitize_postgres_dsn()",
+      "id": "dataio_supabase_integration_sanitize_postgres_dsn"
+    },
+    {
+      "label": "_normalize_requested_columns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L66",
+      "community": 1,
+      "norm_label": "_normalize_requested_columns()",
+      "id": "dataio_supabase_integration_normalize_requested_columns"
+    },
+    {
+      "label": "_get_conn_params()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L82",
+      "community": 1,
+      "norm_label": "_get_conn_params()",
+      "id": "dataio_supabase_integration_get_conn_params"
+    },
+    {
+      "label": "_connect()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L100",
+      "community": 1,
+      "norm_label": "_connect()",
+      "id": "dataio_supabase_integration_connect"
+    },
+    {
+      "label": "_rows_to_frame()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L107",
+      "community": 1,
+      "norm_label": "_rows_to_frame()",
+      "id": "dataio_supabase_integration_rows_to_frame"
+    },
+    {
+      "label": "fetch_table()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L116",
+      "community": 1,
+      "norm_label": "fetch_table()",
+      "id": "dataio_supabase_integration_fetch_table"
+    },
+    {
+      "label": "get_table_columns()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L134",
+      "community": 1,
+      "norm_label": "get_table_columns()",
+      "id": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "label": "get_date_column_name()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L150",
+      "community": 1,
+      "norm_label": "get_date_column_name()",
+      "id": "dataio_supabase_integration_get_date_column_name"
+    },
+    {
+      "label": "fetch_recent_dates()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L161",
+      "community": 1,
+      "norm_label": "fetch_recent_dates()",
+      "id": "dataio_supabase_integration_fetch_recent_dates"
+    },
+    {
+      "label": "fetch_rows_for_date()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L181",
+      "community": 1,
+      "norm_label": "fetch_rows_for_date()",
+      "id": "dataio_supabase_integration_fetch_rows_for_date"
+    },
+    {
+      "label": "get_max_trading212_daily_account_date()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L211",
+      "community": 1,
+      "norm_label": "get_max_trading212_daily_account_date()",
+      "id": "dataio_supabase_integration_get_max_trading212_daily_account_date"
+    },
+    {
+      "label": "empty_table_frame()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L265",
+      "community": 1,
+      "norm_label": "empty_table_frame()",
+      "id": "dataio_supabase_integration_empty_table_frame"
+    },
+    {
+      "label": "batch_insert()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L271",
+      "community": 1,
+      "norm_label": "batch_insert()",
+      "id": "dataio_supabase_integration_batch_insert"
+    },
+    {
+      "label": "delete_all_rows()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L307",
+      "community": 1,
+      "norm_label": "delete_all_rows()",
+      "id": "dataio_supabase_integration_delete_all_rows"
+    },
+    {
+      "label": "delete_rows_by_values()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L315",
+      "community": 1,
+      "norm_label": "delete_rows_by_values()",
+      "id": "dataio_supabase_integration_delete_rows_by_values"
+    },
+    {
+      "label": "table_exists()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L328",
+      "community": 1,
+      "norm_label": "table_exists()",
+      "id": "dataio_supabase_integration_table_exists"
+    },
+    {
+      "label": "batch_insert_polars_df()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L345",
+      "community": 1,
+      "norm_label": "batch_insert_polars_df()",
+      "id": "dataio_supabase_integration_batch_insert_polars_df"
+    },
+    {
+      "label": "create_relation()",
+      "file_type": "code",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L355",
+      "community": 1,
+      "norm_label": "create_relation()",
+      "id": "dataio_supabase_integration_create_relation"
+    },
+    {
+      "label": "ats-jobs.groovy",
+      "file_type": "code",
+      "source_file": "after/jenkins/casc/jobs/ats-jobs.groovy",
+      "source_location": "L1",
+      "community": 8,
+      "norm_label": "ats-jobs.groovy",
+      "id": "after_jenkins_casc_jobs_ats_jobs_groovy"
+    },
+    {
+      "label": "test_helpers.py",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L1",
+      "community": 4,
+      "norm_label": "test_helpers.py",
+      "id": "after_tests_test_helpers_py"
+    },
+    {
+      "label": "test_garch_volatility_calibrates_when_params_are_none()",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L7",
+      "community": 4,
+      "norm_label": "test_garch_volatility_calibrates_when_params_are_none()",
+      "id": "tests_test_helpers_test_garch_volatility_calibrates_when_params_are_none"
+    },
+    {
+      "label": "test_garch_volatility_uses_fixed_params()",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L22",
+      "community": 4,
+      "norm_label": "test_garch_volatility_uses_fixed_params()",
+      "id": "tests_test_helpers_test_garch_volatility_uses_fixed_params"
+    },
+    {
+      "label": "test_calibrate_decorator_accepts_custom_calibration_function()",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L37",
+      "community": 4,
+      "norm_label": "test_calibrate_decorator_accepts_custom_calibration_function()",
+      "id": "tests_test_helpers_test_calibrate_decorator_accepts_custom_calibration_function"
+    },
+    {
+      "label": "test_compute_ema_signal_accepts_garch_none_args()",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L50",
+      "community": 4,
+      "norm_label": "test_compute_ema_signal_accepts_garch_none_args()",
+      "id": "tests_test_helpers_test_compute_ema_signal_accepts_garch_none_args"
+    },
+    {
+      "label": "test_compute_ema_signal_defaults_to_ema_volatility()",
+      "file_type": "code",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L78",
+      "community": 4,
+      "norm_label": "test_compute_ema_signal_defaults_to_ema_volatility()",
+      "id": "tests_test_helpers_test_compute_ema_signal_defaults_to_ema_volatility"
+    },
+    {
+      "label": "data.py",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L1",
+      "community": 3,
+      "norm_label": "data.py",
+      "id": "after_dashboard_data_py"
+    },
+    {
+      "label": "get_dashboard_context()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L56",
+      "community": 3,
+      "norm_label": "get_dashboard_context()",
+      "id": "dashboard_data_get_dashboard_context"
+    },
+    {
+      "label": "get_positions_treemap_context()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L77",
+      "community": 3,
+      "norm_label": "get_positions_treemap_context()",
+      "id": "dashboard_data_get_positions_treemap_context"
+    },
+    {
+      "label": "get_nav_context()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L133",
+      "community": 3,
+      "norm_label": "get_nav_context()",
+      "id": "dashboard_data_get_nav_context"
+    },
+    {
+      "label": "get_dashboard_columns()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L184",
+      "community": 3,
+      "norm_label": "get_dashboard_columns()",
+      "id": "dashboard_data_get_dashboard_columns"
+    },
+    {
+      "label": "fetch_rows_for_selected_date()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L204",
+      "community": 3,
+      "norm_label": "fetch_rows_for_selected_date()",
+      "id": "dashboard_data_fetch_rows_for_selected_date"
+    },
+    {
+      "label": "split_mobile_columns()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L212",
+      "community": 3,
+      "norm_label": "split_mobile_columns()",
+      "id": "dashboard_data_split_mobile_columns"
+    },
+    {
+      "label": "_find_column_name()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L231",
+      "community": 3,
+      "norm_label": "_find_column_name()",
+      "id": "dashboard_data_find_column_name"
+    },
+    {
+      "label": "_compute_max_drawdown()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L238",
+      "community": 3,
+      "norm_label": "_compute_max_drawdown()",
+      "id": "dashboard_data_compute_max_drawdown"
+    },
+    {
+      "label": "_compute_max_upside()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L248",
+      "community": 3,
+      "norm_label": "_compute_max_upside()",
+      "id": "dashboard_data_compute_max_upside"
+    },
+    {
+      "label": "_format_chart_label()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L258",
+      "community": 3,
+      "norm_label": "_format_chart_label()",
+      "id": "dashboard_data_format_chart_label"
+    },
+    {
+      "label": "_format_raw_date()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L266",
+      "community": 3,
+      "norm_label": "_format_raw_date()",
+      "id": "dashboard_data_format_raw_date"
+    },
+    {
+      "label": "_format_header_date()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L274",
+      "community": 3,
+      "norm_label": "_format_header_date()",
+      "id": "dashboard_data_format_header_date"
+    },
+    {
+      "label": "_format_currency()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L282",
+      "community": 3,
+      "norm_label": "_format_currency()",
+      "id": "dashboard_data_format_currency"
+    },
+    {
+      "label": "_format_signed_currency()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L286",
+      "community": 3,
+      "norm_label": "_format_signed_currency()",
+      "id": "dashboard_data_format_signed_currency"
+    },
+    {
+      "label": "_format_signed_percent()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L291",
+      "community": 3,
+      "norm_label": "_format_signed_percent()",
+      "id": "dashboard_data_format_signed_percent"
+    },
+    {
+      "label": "_format_percent()",
+      "file_type": "code",
+      "source_file": "after/dashboard/data.py",
+      "source_location": "L296",
+      "community": 3,
+      "norm_label": "_format_percent()",
+      "id": "dashboard_data_format_percent"
+    },
+    {
+      "label": "dashboard.js",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L1",
+      "community": 2,
+      "norm_label": "dashboard.js",
+      "id": "after_dashboard_static_js_dashboard_js"
+    },
+    {
+      "label": "getTheme()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L4",
+      "community": 2,
+      "norm_label": "gettheme()",
+      "id": "js_dashboard_gettheme"
+    },
+    {
+      "label": "setTheme()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L6",
+      "community": 2,
+      "norm_label": "settheme()",
+      "id": "js_dashboard_settheme"
+    },
+    {
+      "label": "updateThemeToggle()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L11",
+      "community": 2,
+      "norm_label": "updatethemetoggle()",
+      "id": "js_dashboard_updatethemetoggle"
+    },
+    {
+      "label": "rerenderCharts()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L20",
+      "community": 2,
+      "norm_label": "rerendercharts()",
+      "id": "js_dashboard_rerendercharts"
+    },
+    {
+      "label": "initThemeToggle()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L32",
+      "community": 2,
+      "norm_label": "initthemetoggle()",
+      "id": "js_dashboard_initthemetoggle"
+    },
+    {
+      "label": "waitForScript()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L44",
+      "community": 2,
+      "norm_label": "waitforscript()",
+      "id": "js_dashboard_waitforscript"
+    },
+    {
+      "label": "waitForChartLibraries()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L58",
+      "community": 2,
+      "norm_label": "waitforchartlibraries()",
+      "id": "js_dashboard_waitforchartlibraries"
+    },
+    {
+      "label": "loadComponentMarkup()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L72",
+      "community": 2,
+      "norm_label": "loadcomponentmarkup()",
+      "id": "js_dashboard_loadcomponentmarkup"
+    },
+    {
+      "label": "parseSortValue()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L84",
+      "community": 2,
+      "norm_label": "parsesortvalue()",
+      "id": "js_dashboard_parsesortvalue"
+    },
+    {
+      "label": "compareSortValues()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L103",
+      "community": 2,
+      "norm_label": "comparesortvalues()",
+      "id": "js_dashboard_comparesortvalues"
+    },
+    {
+      "label": "sortElements()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L111",
+      "community": 2,
+      "norm_label": "sortelements()",
+      "id": "js_dashboard_sortelements"
+    },
+    {
+      "label": "applyDisplayLimit()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L123",
+      "community": 2,
+      "norm_label": "applydisplaylimit()",
+      "id": "js_dashboard_applydisplaylimit"
+    },
+    {
+      "label": "sortTableCard()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L129",
+      "community": 2,
+      "norm_label": "sorttablecard()",
+      "id": "js_dashboard_sorttablecard"
+    },
+    {
+      "label": "initTableSortControls()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L164",
+      "community": 2,
+      "norm_label": "inittablesortcontrols()",
+      "id": "js_dashboard_inittablesortcontrols"
+    },
+    {
+      "label": "renderErrorState()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L180",
+      "community": 2,
+      "norm_label": "rendererrorstate()",
+      "id": "js_dashboard_rendererrorstate"
+    },
+    {
+      "label": "hydrateSlot()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L190",
+      "community": 2,
+      "norm_label": "hydrateslot()",
+      "id": "js_dashboard_hydrateslot"
+    },
+    {
+      "label": "observeLazySlots()",
+      "file_type": "code",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L212",
+      "community": 2,
+      "norm_label": "observelazyslots()",
+      "id": "js_dashboard_observelazyslots"
+    },
+    {
+      "label": "run_cbs_parallel()",
+      "file_type": "code",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L72",
+      "community": 5,
+      "norm_label": "run_cbs_parallel()",
+      "id": "fundamentals_analyst_ratings_run_cbs_parallel"
+    },
+    {
+      "label": "_join_ratings()",
+      "file_type": "code",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L195",
+      "community": 3,
+      "norm_label": "_join_ratings()",
+      "id": "dashboard_data_join_ratings"
+    },
+    {
+      "label": "loadDashboardSequentially()",
+      "file_type": "code",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L94",
+      "community": 2,
+      "norm_label": "loaddashboardsequentially()",
+      "id": "js_dashboard_loaddashboardsequentially"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/helpers.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_compute_ema_signal"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/helpers.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_ema_volatility"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_validate_garch_params"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L64",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_compute_garch_sigma2"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L87",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_calibrate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L117",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_garch_mle_calibration"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/helpers.py",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_helpers_py",
+      "target": "ats_helpers_garch_volatility"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_helpers_compute_garch_sigma2",
+      "target": "ats_helpers_validate_garch_params"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L158",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_helpers_garch_mle_calibration",
+      "target": "ats_helpers_validate_garch_params"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/helpers.py",
+      "source_location": "L178",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_helpers_garch_volatility",
+      "target": "ats_helpers_compute_garch_sigma2"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_test_helpers_test_calibrate_decorator_accepts_custom_calibration_function",
+      "target": "ats_helpers_calibrate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_ticker_py",
+      "target": "ats_ticker_log_returns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_ticker_py",
+      "target": "ats_ticker_winsorize_log_returns_inplace"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_ticker_py",
+      "target": "ats_ticker_equityticker"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_make_log_returns",
+      "target": "ats_ticker_log_returns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_winsorize_log_returns",
+      "target": "ats_ticker_winsorize_log_returns_inplace"
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "yfticker"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_init"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_fetch_price_data"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_make_log_returns"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_winsorize_log_returns"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_join_with_market_index"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_compute_beta"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L60",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_get_idiosyncratic_returns"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_weighted_avg_tail"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_get_long_term_momentum_signal"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L78",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_get_short_term_momentum_signal"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L87",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_get_stm_series"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L93",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_get_ltm_series"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker",
+      "target": "ats_ticker_equityticker_plot"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_fetch_price_data",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_make_log_returns",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_winsorize_log_returns",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_join_with_market_index",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_compute_beta",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L61",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_idiosyncratic_returns",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_long_term_momentum_signal",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_short_term_momentum_signal",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L88",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_stm_series",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/ticker.py",
+      "source_location": "L94",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_ltm_series",
+      "target": "ats_ticker_equityticker_require_data"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L75",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_long_term_momentum_signal",
+      "target": "ats_ticker_equityticker_weighted_avg_tail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/ticker.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "ats_ticker_equityticker_get_short_term_momentum_signal",
+      "target": "ats_ticker_equityticker_weighted_avg_tail"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/analyst_price_targets.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "call",
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_price_targets_py",
+      "target": "fundamentals_analyst_price_targets_median_centered_score"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/analyst_price_targets.py",
+      "source_location": "L34",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_price_targets_py",
+      "target": "fundamentals_combined_score_main"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_metric_quantile_name"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_resolve_metric_columns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L47",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_add_metric_quantiles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L62",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_add_weighted_combined_score"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_compute_combined_score"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L123",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_combined_score_py",
+      "target": "fundamentals_combined_score_main"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_add_metric_quantiles",
+      "target": "fundamentals_combined_score_metric_quantile_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L74",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_add_weighted_combined_score",
+      "target": "fundamentals_combined_score_metric_quantile_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L118",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_compute_combined_score",
+      "target": "fundamentals_combined_score_metric_quantile_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L105",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_compute_combined_score",
+      "target": "fundamentals_combined_score_resolve_metric_columns"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_rationale_66",
+      "target": "fundamentals_combined_score_add_weighted_combined_score"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L137",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_main",
+      "target": "fundamentals_combined_score_compute_combined_score"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_combined_score_main"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L110",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_combined_score_main",
+      "target": "fundamentals_analyst_ratings_run_cbs_parallel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "after/src/ats/fundamentals/combined_score.py",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "fundamentals_combined_score_main",
+      "target": "dataio_supabase_integration_fetch_rows_for_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_mu_t"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_c_t"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_direction"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_agreement"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L47",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_stability"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_sample_confidence"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L62",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_cbs"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_fundamentals_analyst_ratings_py",
+      "target": "fundamentals_analyst_ratings_run_cbs_parallel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_direction",
+      "target": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_agreement",
+      "target": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_stability",
+      "target": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_sample_confidence",
+      "target": "fundamentals_analyst_ratings_weights"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_c_t",
+      "target": "fundamentals_analyst_ratings_mu_t"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_direction",
+      "target": "fundamentals_analyst_ratings_mu_t"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_stability",
+      "target": "fundamentals_analyst_ratings_mu_t"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L43",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_agreement",
+      "target": "fundamentals_analyst_ratings_c_t"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_cbs",
+      "target": "fundamentals_analyst_ratings_direction"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_cbs",
+      "target": "fundamentals_analyst_ratings_agreement"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_cbs",
+      "target": "fundamentals_analyst_ratings_stability"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/fundamentals/analyst_ratings.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "fundamentals_analyst_ratings_cbs",
+      "target": "fundamentals_analyst_ratings_sample_confidence"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/dataIO/utils.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_utils_py",
+      "target": "dataio_utils_with_parallel_runner"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/dataIO/utils.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_utils_py",
+      "target": "dataio_utils_build_metric_pivot_frame"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_sanitize_postgres_dsn"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_normalize_requested_columns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_get_conn_params"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_rows_to_frame"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_fetch_table"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L125",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_get_date_column_name"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_fetch_recent_dates"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L180",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_fetch_rows_for_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_get_max_trading212_daily_account_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L221",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_empty_table_frame"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_batch_insert"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L263",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_delete_all_rows"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L271",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_delete_rows_by_values"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L284",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_table_exists"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L301",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_batch_insert_polars_df"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L311",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_src_ats_dataio_supabase_integration_py",
+      "target": "dataio_supabase_integration_create_relation"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_get_conn_params",
+      "target": "dataio_supabase_integration_sanitize_postgres_dsn"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L108",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_table",
+      "target": "dataio_supabase_integration_normalize_requested_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L188",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_rows_for_date",
+      "target": "dataio_supabase_integration_normalize_requested_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L223",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_empty_table_frame",
+      "target": "dataio_supabase_integration_normalize_requested_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_connect",
+      "target": "dataio_supabase_integration_get_conn_params"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L112",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_table",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L126",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_get_table_columns",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L154",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_recent_dates",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L212",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_rows_for_date",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L173",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_get_max_trading212_daily_account_date",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L257",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_batch_insert",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L265",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_delete_all_rows",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L278",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_delete_rows_by_values",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L285",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_table_exists",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L324",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_create_relation",
+      "target": "dataio_supabase_integration_connect"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L130",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_table",
+      "target": "dataio_supabase_integration_rows_to_frame"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L262",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_rows_for_date",
+      "target": "dataio_supabase_integration_rows_to_frame"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L108",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_table",
+      "target": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L142",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_get_date_column_name",
+      "target": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L186",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_rows_for_date",
+      "target": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L222",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_empty_table_frame",
+      "target": "dataio_supabase_integration_get_table_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L153",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_recent_dates",
+      "target": "dataio_supabase_integration_get_date_column_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L187",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_fetch_rows_for_date",
+      "target": "dataio_supabase_integration_get_date_column_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/src/ats/dataIO/supabase_integration.py",
+      "source_location": "L303",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dataio_supabase_integration_batch_insert_polars_df",
+      "target": "dataio_supabase_integration_batch_insert"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_tests_test_helpers_py",
+      "target": "tests_test_helpers_test_garch_volatility_calibrates_when_params_are_none"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_tests_test_helpers_py",
+      "target": "tests_test_helpers_test_garch_volatility_uses_fixed_params"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_tests_test_helpers_py",
+      "target": "tests_test_helpers_test_calibrate_decorator_accepts_custom_calibration_function"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_tests_test_helpers_py",
+      "target": "tests_test_helpers_test_compute_ema_signal_accepts_garch_none_args"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/tests/test_helpers.py",
+      "source_location": "L78",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_tests_test_helpers_py",
+      "target": "tests_test_helpers_test_compute_ema_signal_defaults_to_ema_volatility"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_get_dashboard_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_get_positions_treemap_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L124",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_get_nav_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L175",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_get_dashboard_columns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L208",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_fetch_rows_for_selected_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L216",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_split_mobile_columns"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_find_column_name"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L234",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_compute_max_drawdown"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L244",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_compute_max_upside"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L254",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_chart_label"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L262",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_raw_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L270",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_header_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L278",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_currency"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L282",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_signed_currency"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L287",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_signed_percent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L292",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_format_percent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L195",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_data_py",
+      "target": "dashboard_data_join_ratings"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_dashboard_context",
+      "target": "dashboard_data_get_dashboard_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_dashboard_context",
+      "target": "dashboard_data_fetch_rows_for_selected_date"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_dashboard_context",
+      "target": "dashboard_data_split_mobile_columns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L53",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_dashboard_context",
+      "target": "dashboard_data_join_ratings"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_positions_treemap_context",
+      "target": "dashboard_data_format_currency"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_positions_treemap_context",
+      "target": "dashboard_data_find_column_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_positions_treemap_context",
+      "target": "dashboard_data_format_percent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L129",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_find_column_name"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L149",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_compute_max_drawdown"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L150",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_compute_max_upside"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L153",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_chart_label"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L154",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_raw_date"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L161",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_currency"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L163",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_signed_currency"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L164",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_signed_percent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/data.py",
+      "source_location": "L166",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dashboard_data_get_nav_context",
+      "target": "dashboard_data_format_header_date"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_gettheme"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_settheme"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_updatethemetoggle"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_rerendercharts"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_initthemetoggle"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_waitforscript"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_waitforchartlibraries"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_loadcomponentmarkup"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_parsesortvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L103",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_comparesortvalues"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L111",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_sortelements"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L123",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_applydisplaylimit"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L129",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_sorttablecard"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L164",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_inittablesortcontrols"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_rendererrorstate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L190",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_hydrateslot"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L212",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_observelazyslots"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L94",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "after_dashboard_static_js_dashboard_js",
+      "target": "js_dashboard_loaddashboardsequentially"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_updatethemetoggle",
+      "target": "js_dashboard_gettheme"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_initthemetoggle",
+      "target": "js_dashboard_updatethemetoggle"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_waitforchartlibraries",
+      "target": "js_dashboard_waitforscript"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L95",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_loaddashboardsequentially",
+      "target": "js_dashboard_waitforchartlibraries"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L194",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_hydrateslot",
+      "target": "js_dashboard_loadcomponentmarkup"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L100",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_loaddashboardsequentially",
+      "target": "js_dashboard_loadcomponentmarkup"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_sorttablecard",
+      "target": "js_dashboard_sortelements"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L147",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_sorttablecard",
+      "target": "js_dashboard_applydisplaylimit"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L196",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_hydrateslot",
+      "target": "js_dashboard_inittablesortcontrols"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "after/dashboard/static/js/dashboard.js",
+      "source_location": "L206",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_hydrateslot",
+      "target": "js_dashboard_rendererrorstate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "before/dashboard/static/js/dashboard.js",
+      "source_location": "L108",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_dashboard_loaddashboardsequentially",
+      "target": "js_dashboard_rendererrorstate"
+    }
+  ],
+  "hyperedges": [],
+  "built_at_commit": "5e15d3e74ca99d8f7c03c7c17f77378e9bf1fa65"
+}
