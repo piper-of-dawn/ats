@@ -43,37 +43,25 @@ def fetch_price_data(
     ticker: str,
     cooldown_range: Tuple[float, float] | None = (0.5, 1.5),
     start = None,
-    end = None
+    end = None,
+    all_available_price_history: bool = False,
 ) -> pl.DataFrame:
     """
-    Fetch 1-year historical price data for a ticker via yfinance and return as a Polars DataFrame.
+    Fetch historical price data for a ticker via yfinance and return as a Polars DataFrame.
 
-    - Uses provided date helpers for start/end bounds (YYYYMMDD -> converted to YYYY-MM-DD).
+    - Defaults to one year of data using provided date helpers for start/end bounds.
+    - If all_available_price_history is True, fetches Yahoo's maximum available history.
     - Adds a random cooldown to avoid spamming the API.
-    - On any error or empty data, records the ticker and reason under `rogue_tickers.txt` at `workspace_path`.
 
     Parameters
     - ticker: The security symbol (e.g., "AAPL").
-    - workspace_path: Directory path used to store the rogue tickers log file.
     - cooldown_range: Optional (min_seconds, max_seconds) to sleep before the request.
+    - start: Optional start date. If provided, it takes precedence over all_available_price_history.
+    - end: Optional end date.
+    - all_available_price_history: Fetch all available Yahoo history when True.
 
     Returns
     - A Polars DataFrame with the historical prices. Returns empty DataFrame on failure.
-    """
-    """Return one year of historical prices for ``ticker``.
-
-    The returned :class:`polars.DataFrame` is guaranteed to have three columns:
-
-    * ``date`` (:class:`pl.Date`) – the trading date
-    * ``close`` (float) – the adjusted closing price
-    * ``ticker`` (str) – the symbol requested
-
-    On any error the function returns an empty DataFrame.  The previous
-    implementation accepted a ``workspace_path`` parameter used for logging
-    "rogue" tickers; that behaviour has been removed per the user's request.
-
-    The ``cooldown_range`` argument still controls a random sleep interval
-    before the yfinance request to avoid hammering the API.
     """
 
     tkr = (ticker or "").strip()
@@ -92,22 +80,28 @@ def fetch_price_data(
             # Ignore sleep errors
             pass
 
-    if not start:
+    if not all_available_price_history and not start:
         start = one_year_ago_yyyymmdd(sep="-")
-    if not end:
+    if not all_available_price_history and not end:
         end = today_yyyymmdd(sep="-")
 
     try:
+        download_args = {
+            "progress": False,
+            "auto_adjust": False,
+            "threads": False,
+            "group_by": "ticker",
+        }
+        if all_available_price_history and not start:
+            download_args["period"] = "max"
+            if end:
+                download_args["end"] = end
+        else:
+            download_args["start"] = start
+            download_args["end"] = end
+
         # yfinance returns a pandas DataFrame; suppress progress/threads for determinism
-        pdf = yf.download(
-            tkr,
-            start=start,
-            end=end,
-            progress=False,
-            auto_adjust=False,
-            threads=False,
-            group_by="ticker",
-        )
+        pdf = yf.download(tkr, **download_args)
 
         # nothing returned
         if pdf is None or getattr(pdf, "empty", True):

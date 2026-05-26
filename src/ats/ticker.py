@@ -25,8 +25,11 @@ class EquityTicker(YfTicker):
         if self.price_data is None or self.price_data.is_empty():
             raise ValueError(f"Price data is not available for {who} '{self.ticker}'.")
 
-    def fetch_price_data(self):
-        self.price_data = fetch_price_data(self.ticker)
+    def fetch_price_data(self, all_available_price_history: bool = False):
+        self.price_data = fetch_price_data(
+            self.ticker,
+            all_available_price_history=all_available_price_history,
+        )
         self._require_data()
         return self
 
