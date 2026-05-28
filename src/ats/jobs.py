@@ -1,3 +1,4 @@
+import time
 from datetime import date
 from multiprocessing import get_context
 
@@ -32,23 +33,38 @@ def _normalize_ticker(value):
     return ticker or None
 
 
-def _prepare_market_index_data(jobs):
+def _prepare_market_index_data(jobs, attempts=3, retry_delay_seconds=5):
     market_index_data = {}
     market_indexes = sorted({job["representative_index_ticker"] for job in jobs})
     for mkt_index in market_indexes:
+        market_index_data[mkt_index] = _prepare_one_market_index(
+            mkt_index,
+            attempts=attempts,
+            retry_delay_seconds=retry_delay_seconds,
+        )
+    return market_index_data
+
+
+def _prepare_one_market_index(mkt_index, attempts=3, retry_delay_seconds=5):
+    last_error = None
+    for attempt in range(1, attempts + 1):
         try:
+            print(f"Preparing market index {mkt_index} attempt {attempt}/{attempts}")
             mkt = (
                 EquityTicker(mkt_index)
                 .fetch_price_data()
                 .make_log_returns()
                 .winsorize_log_returns()
             )
-            market_index_data[mkt_index] = {"market_price_data": mkt.price_data}
+            print(f"Prepared market index {mkt_index} rows={mkt.price_data.height}")
+            return {"market_price_data": mkt.price_data}
         except Exception as exc:
-            market_index_data[mkt_index] = {
-                "market_error": f"market index {mkt_index} error={exc}"
-            }
-    return market_index_data
+            last_error = exc
+            print(f"Market index {mkt_index} attempt {attempt}/{attempts} failed: {exc}")
+            if attempt < attempts and retry_delay_seconds > 0:
+                time.sleep(retry_delay_seconds)
+
+    return {"market_error": f"market index {mkt_index} error={last_error}"}
 
 
 def _attach_market_index_data(jobs, market_index_data):

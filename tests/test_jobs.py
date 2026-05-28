@@ -59,6 +59,27 @@ def test_prepare_market_index_data_records_index_fetch_failures(monkeypatch):
     assert result == {"^BAD": {"market_error": "market index ^BAD error=no data"}}
 
 
+def test_prepare_market_index_data_retries_transient_index_failures(monkeypatch):
+    class FlakyTicker(_FakeMarketTicker):
+        attempts = 0
+
+        def fetch_price_data(self):
+            self.__class__.attempts += 1
+            if self.__class__.attempts == 1:
+                raise ValueError("temporary yahoo miss")
+            return self
+
+    monkeypatch.setattr(jobs_module, "EquityTicker", FlakyTicker)
+
+    result = jobs_module._prepare_market_index_data(
+        [{"ticker": "AAPL", "representative_index_ticker": "^GSPC"}],
+        retry_delay_seconds=0,
+    )
+
+    assert FlakyTicker.attempts == 2
+    assert result["^GSPC"]["market_price_data"].height == 2
+
+
 def test_normalize_jobs_strips_tickers_and_drops_incomplete_rows():
     result = jobs_module._normalize_jobs(
         [
