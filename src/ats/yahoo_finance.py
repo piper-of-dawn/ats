@@ -123,6 +123,8 @@ def fetch_price_data(
                 renames[col] = "date"
             elif "Adj Close" in cstr:
                 renames[col] = "close"
+        if "date" not in renames.values() and pldf.columns:
+            renames[pldf.columns[0]] = "date"
         if renames:
             pldf = pldf.rename(renames)
 

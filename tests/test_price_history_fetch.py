@@ -41,6 +41,26 @@ def test_yahoo_fetch_price_data_uses_max_period_for_all_history(monkeypatch):
     ]
 
 
+def test_yahoo_fetch_price_data_handles_unnamed_reset_index(monkeypatch):
+    pdf = pd.DataFrame(
+        {
+            ("^GSPC", "Adj Close"): [100.0],
+        },
+        index=pd.to_datetime(["2000-01-03"]),
+    )
+
+    def fake_download(ticker, **kwargs):
+        return pdf
+
+    monkeypatch.setattr(yahoo_finance.yf, "download", fake_download)
+
+    result = yahoo_finance.fetch_price_data("^GSPC", cooldown_range=None)
+
+    assert result.to_dicts() == [
+        {"date": date(2000, 1, 3), "close": 100.0, "ticker": "^GSPC"}
+    ]
+
+
 def test_equity_ticker_forwards_all_history_flag(monkeypatch):
     captured = {}
 
