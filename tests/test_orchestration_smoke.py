@@ -1,4 +1,5 @@
 import math
+import os
 
 import polars as pl
 import pytest
@@ -11,6 +12,9 @@ from ats.orchestration import (
 
 
 def test_first_two_us_largecap_tickers_generate_factor_matrix_without_database_write():
+    if not os.getenv("SUPABASE_PASSWORD"):
+        pytest.skip("SUPABASE_PASSWORD is required for live orchestration smoke test")
+
     tickers = source_ticker_symbols_from_database("us_largecap", limit=2)
     if len(tickers) < 2:
         pytest.skip("us_largecap returned fewer than two tickers")
