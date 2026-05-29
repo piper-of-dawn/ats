@@ -56,6 +56,9 @@ def build_factor_matrix(equity_factor_metric_rows: list[dict]):
     return (
         factor_matrix_without_combined_score
         .join(combined_scores.select("ticker", "as_of_date", "combined_score"), on=["ticker", "as_of_date"], how="left")
+        .with_columns(
+            pl.col("ltm", "stm", "beta", "analyst_price_target_deviation", "analyst_rating", "combined_score").round(2)
+        )
         .select("ticker", "ltm", "stm", "beta", "as_of_date", "analyst_price_target_deviation", "analyst_rating", "combined_score")
         .sort("ticker")
     )
