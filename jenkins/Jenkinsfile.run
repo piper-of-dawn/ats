@@ -13,10 +13,8 @@ pipeline {
         string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
         string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run.')
         string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-daily', description: 'Prefix used for the transient docker container name.')
-    }
-
-    environment {
-        ATS_COMMANDS = 'us_largecap, us_midcap'
+        string(name: 'SOURCE_TABLES', defaultValue: 'us_largecap,us_midcap', description: 'Comma-separated source universe tables.')
+        string(name: 'MARKET_INDEX', defaultValue: '^GSPC', description: 'Representative market index ticker.')
     }
 
     stages {
@@ -37,7 +35,7 @@ pipeline {
             }
         }
 
-        stage('Run Commands') {
+        stage('Run Factor Orchestration') {
             steps {
                 sh '''
                     set -euo pipefail
@@ -46,31 +44,20 @@ pipeline {
                     docker run --rm \
                         --name "${container_name}" \
                         --env-file "${APP_ENV_FILE}" \
-                        -e ATS_COMMANDS="${ATS_COMMANDS}" \
-                        --entrypoint /usr/local/bin/run-ats-commands.sh \
-                        "${IMAGE_NAME}:latest"
-                '''
-            }
-        }
-
-        stage('Update Analyst Metrics') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    container_name="${CONTAINER_NAME_PREFIX}-analyst-${BUILD_NUMBER}"
-
-                    docker run --rm \
-                        --name "${container_name}" \
-                        --env-file "${APP_ENV_FILE}" \
+                        -e SOURCE_TABLES="${SOURCE_TABLES}" \
+                        -e MARKET_INDEX="${MARKET_INDEX}" \
                         --entrypoint sh \
                         "${IMAGE_NAME}:latest" \
                         -c '
-                            ats-update-ratings us_largecap &&
-                            ats-update-ratings us_midcap &&
-                            ats-update-price-targets us_largecap &&
-                            ats-update-price-targets us_midcap &&
-                            ats-combined-score us_largecap &&
-                            ats-combined-score us_midcap
+                            old_ifs="$IFS"
+                            IFS=","
+                            for source_table in $SOURCE_TABLES; do
+                                source_table="$(printf "%s" "$source_table" | xargs)"
+                                if [ -n "$source_table" ]; then
+                                    ats "$source_table" "${source_table}_metrics" "$MARKET_INDEX"
+                                fi
+                            done
+                            IFS="$old_ifs"
                         '
                 '''
             }
@@ -79,7 +66,7 @@ pipeline {
 
     post {
         success {
-            echo "Completed daily ATS run, analyst metric update, and combined scoring at 08:00 Europe/Berlin using ${params.IMAGE_NAME}:latest."
+            echo "Completed daily ATS factor orchestration at 08:00 Europe/Berlin using ${params.IMAGE_NAME}:latest."
         }
     }
 }
