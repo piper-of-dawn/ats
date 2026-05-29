@@ -22,6 +22,17 @@ def optional_float(value):
     return None if value is None else float(value)
 
 
+def empty_equity_factor_metric_row(equity_ticker_symbol: str):
+    return {
+        "ticker": equity_ticker_symbol,
+        "ltm": None,
+        "stm": None,
+        "beta": None,
+        "cbs": None,
+        "analyst_price_target_deviation": None,
+    }
+
+
 def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: str):
     equity_ticker = (
         EquityTicker(equity_ticker_symbol, EquityTicker(market_index))
@@ -81,9 +92,17 @@ def source_tickers_from_database(context):
 
 @op
 def compute_equity_factor_metrics(context, equity_ticker_symbol: str):
-    equity_factor_metric_row = compute_equity_factor_metric_row(
-        equity_ticker_symbol, context.op_config["market_index"]
-    )
+    try:
+        equity_factor_metric_row = compute_equity_factor_metric_row(
+            equity_ticker_symbol, context.op_config["market_index"]
+        )
+    except Exception as exc:
+        context.log.warning(
+            "compute_equity_factor_metrics[%s] failed: %s",
+            equity_ticker_symbol,
+            exc,
+        )
+        equity_factor_metric_row = empty_equity_factor_metric_row(equity_ticker_symbol)
     context.log.info(
         "compute_equity_factor_metrics[%s] -> %s",
         equity_ticker_symbol,
