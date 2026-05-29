@@ -6,4 +6,5 @@ services:
     env_file:
       - ${APP_ENV_FILE:-/opt/ats/app.env}
     environment:
-      ATS_COMMANDS: ${ATS_COMMANDS:?ATS_COMMANDS is required}
+      SOURCE_TABLES: ${SOURCE_TABLES:?SOURCE_TABLES is required}
+      MARKET_INDEX: ${MARKET_INDEX:?MARKET_INDEX is required}

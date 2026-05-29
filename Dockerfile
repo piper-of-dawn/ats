@@ -16,12 +16,10 @@ RUN apt-get update \
     && curl -LsSf https://astral.sh/uv/install.sh | sh
 
 COPY docker/run-ats-commands.sh /usr/local/bin/run-ats-commands.sh
-COPY docker/run-ats-ratings.sh /usr/local/bin/run-ats-ratings.sh
 COPY docker/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
 
 RUN chmod +x \
     /usr/local/bin/run-ats-commands.sh \
-    /usr/local/bin/run-ats-ratings.sh \
     /usr/local/bin/cron-entrypoint.sh
 
 COPY dist/*.whl /tmp/dist/

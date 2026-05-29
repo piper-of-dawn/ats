@@ -9,12 +9,11 @@ This repo has two related concerns:
 The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 
 ## High-Level Layout
-- `main.py`: CLI entrypoint (delegates to `ats.cli.main`).
 - `src/ats/`: Core package.
-- `src/ats/jobs.py`: Batch orchestration.
-  - `build_jobs(table_name)`: builds `{ticker, representative_index_ticker}` jobs.
-  - `run_jobs(jobs, as_of_date=None)`: runs multiprocessing pipeline, writes to `factor_metrics`.
-- `src/ats/processing.py`: per-ticker processing logic (`process_ticker`).
+- `src/ats/orchestration.py`: Dagster dynamic orchestration entrypoint.
+  - Fetches source tickers from Supabase.
+  - Dynamically maps per-ticker factor computation.
+  - Writes the final factor matrix to Supabase via `batch_insert_polars_df`.
 - `src/ats/dataIO/supabase_integration.py`: DB I/O for local/backend pipeline.
   - `fetch_table`, `batch_insert`, `batch_insert_polars_df`, `delete_all_rows`, `delete_rows_by_values`, `table_exists`.
 - `src/ats/dataIO/statement_table.py`: parses Trading 212 statement summary rows from PDF into `StatementTable`.
@@ -26,23 +25,21 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
 - `src/ats/dashboard.py`: local Flask dashboard app (package-level app).
 - `dashboard/index.py`: Vercel Flask function entrypoint for production dashboard deployment.
 - `dashboard/requirements.txt`: Vercel-only minimal Python dependencies.
-- `tests/test_run_jobs_integration.py`: integration test for `run_jobs` write+cleanup behavior.
 
 ## Data Flow
 1. Source universe table (e.g., `us_midcap` / `us_midcap400`) is read from Supabase.
-2. Jobs are created from `yahoo_finance_ticker` and `representative_index_ticker`.
-3. `run_jobs` processes in parallel (`spawn` context) and computes `stm`, `ltm`, `beta`.
-4. Results are inserted into `factor_metrics` with `as_of_date`.
+2. Dagster dynamic mapping creates one per-ticker factor computation from `yahoo_finance_ticker`.
+3. `EquityTicker` computes `stm`, `ltm`, `beta`, analyst rating, and analyst price target deviation.
+4. The final factor matrix is inserted into the configured metrics table with `as_of_date`.
 5. Gmail sync reads the latest `fund_nav.date`, downloads newer Trading 212 PDFs, inserts fresh `fund_nav` rows from statement tables, then truncates and reloads `positions` from the newest PDF's open positions section.
 6. Vercel dashboard can display any table via query param `?table=<name>`.
 
 ## Local Commands
 - Install/sync deps: `uv sync`
-- Run pipeline CLI: `uv run python main.py <table_name>` (or package CLI if configured)
+- Run factor orchestration: `uv run ats <source_table> <target_table> <market_index>`
 - Run Gmail sync locally: `uv run trading212-gmail-sync`
 - Run local dashboard: `uv run dashboard-local`
 - Run tests: `uv run pytest -q`
-- Run integration test only: `uv run pytest tests/test_run_jobs_integration.py -q -rs`
 - Build wheel: `just build`
 
 ## CI/CD Architecture
@@ -125,8 +122,6 @@ Connection priority:
   - Mitigation in deployment: pre-seed `/var/lib/jenkins/ats-gmail/config/token.json` from a Jenkins Secret file credential, then allow the persistent host-mounted token to refresh in place on later runs.
 - Trading 212 PDF parsing depends on `pdftotext`.
   - Mitigation in Docker image: install `poppler-utils`.
-- Multiprocessing fork warnings in tests:
-  - Mitigation in code: `get_context("spawn")` in `run_jobs`.
 - Vercel builds can accidentally pull backend lock/deps if `.vercelignore` is missing or incorrect.
 - Jenkins must have access to the local Docker daemon; the `jenkins` user needs permission to access `/var/run/docker.sock`.
 - Jenkins agents on Arch need `postgresql-libs` installed or `psycopg` imports will fail due to missing `libpq`.
