@@ -32,6 +32,7 @@ def test_first_two_us_largecap_tickers_generate_factor_matrix_without_database_w
         "as_of_date",
         "analyst_price_target_deviation",
         "analyst_rating",
+        "analyst_trend",
         "combined_score",
     ]
     assert factor_matrix.height == 2
@@ -58,4 +59,5 @@ def test_failed_ticker_returns_null_factor_row(monkeypatch):
         "beta": None,
         "cbs": None,
         "analyst_price_target_deviation": None,
+        "analyst_trend": None,
     }

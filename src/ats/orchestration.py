@@ -13,8 +13,12 @@ LOG_CONFIG = {"loggers": {"console": {"config": {"log_level": "INFO"}}}}
 
 
 def source_ticker_symbols_from_database(source_table: str, limit: int | None = None):
-    source_ticker_series = fetch_table(source_table)["yahoo_finance_ticker"].drop_nulls()
-    tickers = [str(ticker).strip() for ticker in source_ticker_series if str(ticker).strip()]
+    source_ticker_series = fetch_table(source_table)[
+        "yahoo_finance_ticker"
+    ].drop_nulls()
+    tickers = [
+        str(ticker).strip() for ticker in source_ticker_series if str(ticker).strip()
+    ]
     return tickers[:limit] if limit else tickers
 
 
@@ -30,6 +34,7 @@ def empty_equity_factor_metric_row(equity_ticker_symbol: str):
         "beta": None,
         "cbs": None,
         "analyst_price_target_deviation": None,
+        "analyst_trend": None,
     }
 
 
@@ -40,6 +45,7 @@ def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: st
         .get_short_term_momentum_signal()
         .getCombinedRating()
         .getAnalystPriceTargetDeviation()
+        .getAnalystGradeTrendSignal()
     )
     return {
         "ticker": equity_ticker_symbol,
@@ -47,30 +53,54 @@ def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: st
         "stm": float(equity_ticker.stm),
         "beta": float(equity_ticker.beta),
         "cbs": float(equity_ticker.combined_rating),
-        "analyst_price_target_deviation": optional_float(equity_ticker.analyst_price_target_deviation),
+        "analyst_price_target_deviation": optional_float(
+            equity_ticker.analyst_price_target_deviation
+        ),
+        "analyst_trend": equity_ticker.analyst_grade_trend_signal,
     }
 
 
 def build_factor_matrix(equity_factor_metric_rows: list[dict]):
-    factor_matrix_without_combined_score = (
-        pl.DataFrame(equity_factor_metric_rows)
-        .with_columns(
-            (pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64)).round(2).alias("analyst_rating"),
-            (
-                pl.col("analyst_price_target_deviation").rank()
-                / pl.col("analyst_price_target_deviation").count().cast(pl.Float64)
-            ).round(2),
-            pl.lit(date.today()).alias("as_of_date"),
-        )
+    factor_matrix_without_combined_score = pl.DataFrame(
+        equity_factor_metric_rows
+    ).with_columns(
+        (pl.col("cbs").rank() / pl.col("cbs").count().cast(pl.Float64))
+        .round(2)
+        .alias("analyst_rating"),
+        (
+            pl.col("analyst_price_target_deviation").rank()
+            / pl.col("analyst_price_target_deviation").count().cast(pl.Float64)
+        ).round(2),
+        pl.lit(date.today()).alias("as_of_date"),
     )
     combined_scores = compute_combined_score(factor_matrix_without_combined_score)
     return (
-        factor_matrix_without_combined_score
-        .join(combined_scores.select("ticker", "as_of_date", "combined_score"), on=["ticker", "as_of_date"], how="left")
-        .with_columns(
-            pl.col("ltm", "stm", "beta", "analyst_price_target_deviation", "analyst_rating", "combined_score").round(2)
+        factor_matrix_without_combined_score.join(
+            combined_scores.select("ticker", "as_of_date", "combined_score"),
+            on=["ticker", "as_of_date"],
+            how="left",
         )
-        .select("ticker", "ltm", "stm", "beta", "as_of_date", "analyst_price_target_deviation", "analyst_rating", "combined_score")
+        .with_columns(
+            pl.col(
+                "ltm",
+                "stm",
+                "beta",
+                "analyst_price_target_deviation",
+                "analyst_rating",
+                "combined_score",
+            ).round(2)
+        )
+        .select(
+            "ticker",
+            "ltm",
+            "stm",
+            "beta",
+            "as_of_date",
+            "analyst_price_target_deviation",
+            "analyst_rating",
+            "analyst_trend",
+            "combined_score",
+        )
         .sort("ticker")
     )
 
