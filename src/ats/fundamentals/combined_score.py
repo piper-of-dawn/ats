@@ -10,12 +10,11 @@ from ats.dataIO.supabase_integration import (
 
 
 METRIC_WEIGHTS = {
-    "stm": 0.35,
+    "stm": 0.45,
     "ltm": 0.25,
     "analyst_rating": 0.10,
     "analyst_price_target_deviation": 0.10,
     "beta": 0.10,
-    "analyst_trend": 0.10,
 }
 
 METRIC_DIRECTIONS = {
@@ -24,19 +23,10 @@ METRIC_DIRECTIONS = {
     "analyst_rating": 1,
     "analyst_price_target_deviation": -1,
     "beta": -1,
-    "analyst_trend": 1,
-}
-
-ANALYST_TREND_SCORE = {
-    "massively deteriorating": -2.0,
-    "deteriorating": -1.0,
-    "stable": 0.0,
-    "improving": 1.0,
-    "massively improving": 2.0,
 }
 
 RATING_COLUMN_CANDIDATES = ("analyst_rating", "rating")
-DERIVED_METRIC_COLUMNS = {"analyst_trend": "analyst_trend_score"}
+DERIVED_METRIC_COLUMNS = {}
 
 
 def _metric_quantile_name(metric: str) -> str:
@@ -58,14 +48,7 @@ def _resolve_metric_columns(df: pl.DataFrame) -> dict[str, str]:
 
 
 def add_derived_metric_columns(df: pl.DataFrame) -> pl.DataFrame:
-    if "analyst_trend" not in df.columns:
-        return df
-
-    return df.with_columns(
-        pl.col("analyst_trend")
-        .replace_strict(ANALYST_TREND_SCORE, default=None, return_dtype=pl.Float64)
-        .alias("analyst_trend_score")
-    )
+    return df
 
 
 def add_metric_quantiles(

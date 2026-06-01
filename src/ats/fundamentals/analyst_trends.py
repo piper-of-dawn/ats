@@ -3,7 +3,6 @@ from datetime import timedelta
 import polars as pl
 from yfinance import Ticker as YfTicker
 
-
 RATING_SCORE = {
     "Strong Buy": 1.0,
     "Buy": 0.75,
@@ -26,7 +25,6 @@ RECENT_LOOKBACK_DAYS = 180
 STABLE_THRESHOLD = 0.02
 MASSIVE_THRESHOLD = 0.25
 
-
 def get_ticker_signal_for_analyst_grades(ticker: str) -> str | None:
     analyst_grades = YfTicker(ticker).get_upgrades_downgrades()
     if analyst_grades is None or analyst_grades.empty:
@@ -39,6 +37,13 @@ def get_ticker_signal_for_analyst_grades(ticker: str) -> str | None:
 
 
 def analyst_grade_trend_signal(analyst_grades: pl.DataFrame) -> str | None:
+    score = analyst_grade_trend_score(analyst_grades)
+    if score is None:
+        return None
+    return _classify_trend(score)
+
+
+def analyst_grade_trend_score(analyst_grades: pl.DataFrame) -> float | None:
     if analyst_grades.is_empty():
         return None
 
@@ -58,10 +63,7 @@ def analyst_grade_trend_signal(analyst_grades: pl.DataFrame) -> str | None:
     if scored_actions.is_empty():
         return None
 
-    recent_revision_score = _recent_revision_consensus(scored_actions)
-    if recent_revision_score is None:
-        return "stable"
-    return _classify_trend(recent_revision_score)
+    return _recent_revision_consensus(scored_actions)
 
 
 def _classify_trend(signal: float) -> str:
@@ -117,9 +119,9 @@ def _score_actions(analyst_grades: pl.DataFrame) -> pl.DataFrame:
         )
         .with_columns((pl.col("gradeDelta") / 2).clip(-1, 1).alias("gradeDeltaScore"))
         .with_columns(
-            (
-                (pl.col("gradeDeltaScore") + pl.col("priceTargetDelta")) / 2
-            ).alias("revisionScore")
+            ((pl.col("gradeDeltaScore") + pl.col("priceTargetDelta")) / 2).alias(
+                "revisionScore"
+            )
         )
         .select(["GradeDate", "Firm", "revisionScore"])
     )
@@ -132,8 +134,10 @@ def _recent_revision_consensus(scored_actions: pl.DataFrame) -> float | None:
     if recent_actions.is_empty():
         recent_actions = scored_actions
 
-    firm_revision_scores = recent_actions.group_by("Firm").agg(
-        pl.col("revisionScore").median().alias("firmRevisionScore")
+    firm_revision_scores = (
+        recent_actions.sort(["Firm", "GradeDate"])
+        .group_by("Firm")
+        .agg(pl.col("revisionScore").last().alias("firmRevisionScore"))
     )
     if firm_revision_scores.is_empty():
         return None
