@@ -34,7 +34,6 @@ def empty_equity_factor_metric_row(equity_ticker_symbol: str):
         "beta": None,
         "cbs": None,
         "analyst_price_target_deviation": None,
-        "analyst_trend": None,
     }
 
 
@@ -45,7 +44,6 @@ def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: st
         .get_short_term_momentum_signal()
         .getCombinedRating()
         .getAnalystPriceTargetDeviation()
-        .getAnalystGradeTrendSignal()
     )
     return {
         "ticker": equity_ticker_symbol,
@@ -56,7 +54,6 @@ def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: st
         "analyst_price_target_deviation": optional_float(
             equity_ticker.analyst_price_target_deviation
         ),
-        "analyst_trend": equity_ticker.analyst_grade_trend_signal,
     }
 
 
@@ -74,6 +71,7 @@ def build_factor_matrix(equity_factor_metric_rows: list[dict]):
         pl.lit(date.today()).alias("as_of_date"),
     )
     combined_scores = compute_combined_score(factor_matrix_without_combined_score)
+
     return (
         factor_matrix_without_combined_score.join(
             combined_scores.select("ticker", "as_of_date", "combined_score"),
@@ -98,7 +96,6 @@ def build_factor_matrix(equity_factor_metric_rows: list[dict]):
             "as_of_date",
             "analyst_price_target_deviation",
             "analyst_rating",
-            "analyst_trend",
             "combined_score",
         )
         .sort("ticker")

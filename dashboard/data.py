@@ -30,7 +30,6 @@ _DASHBOARD_PRIORITY_COLUMNS = (
     "analyst_rating",
     "rating",
     "analyst_price_target_deviation",
-    "analyst_trend",
     "representative_index_ticker",
 )
 
@@ -48,7 +47,6 @@ _COLUMN_LABELS = {
     "combined_score": "Combined Score",
     "analyst_rating": "Analyst Rating",
     "analyst_price_target_deviation": "Price Target Dev",
-    "analyst_trend": "Analyst Trend",
 }
 
 _DASHBOARD_FETCH_LIMIT = 50
@@ -221,7 +219,6 @@ def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
         "analyst_rating",
         "rating",
         "analyst_price_target_deviation",
-        "analyst_trend",
         "beta",
     )
     primary_columns = [c for c in primary_order if c in columns]

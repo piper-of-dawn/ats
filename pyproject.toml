@@ -34,7 +34,14 @@ dev = [
 
 [project.scripts]
 ats = "ats.orchestration:main"
-
+ats-combined-score = "ats.fundamentals.combined_score:main"
+ats-update-price-targets = "ats.fundamentals.analyst_price_targets:main"
+ats-update-ratings = "ats.fundamentals.analyst_ratings:main"
+dashboard-local = "ats.dashboard:run"
+gmail-downloader = "ats.gmail_downloader:main"
+trading212-gmail-sync = "ats.gmail_sync:main"
+gmail-fund-nav-sync = "ats.gmail_sync:main"
+announce-fund-nav = "ats.announce_fund_nav:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

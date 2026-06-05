@@ -1,7 +1,7 @@
 import polars as pl
 from ats.fundamentals.analyst_price_targets import median_centered_score
 from ats.fundamentals.analyst_ratings import agreement, direction, sample_confidence, stability
-from ats.fundamentals.analyst_trends import analyst_grade_trend_signal
+from ats.fundamentals.analyst_trends import analyst_grade_trend_score
 from ats.helpers import compute_ema_signal, ema_volatility
 from yfinance import Ticker as YfTicker
 import numpy as np
@@ -154,7 +154,7 @@ class EquityTicker(YfTicker):
         analyst_grades = pl.from_pandas(
             analyst_grades.rename_axis("GradeDate").reset_index()
         ).with_columns(pl.col("GradeDate").dt.date())
-        self.analyst_grade_trend_signal = analyst_grade_trend_signal(analyst_grades)
+        self.analyst_grade_trend_signal = analyst_grade_trend_score(analyst_grades)
         return self
 
     def __weighted_avg_tail__ (self, tail_size: int, array):
