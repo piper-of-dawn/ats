@@ -12,13 +12,12 @@ if str(SRC_DIR) not in sys.path:
 
 from ats.dataIO.supabase_integration import (
     empty_table_frame,
-    fetch_table,
     fetch_recent_dates,
+    fetch_table,
     fetch_top_rows_for_date,
     get_date_column_name,
     get_table_columns,
 )
-
 
 _DASHBOARD_PRIORITY_COLUMNS = (
     "ticker",
@@ -30,7 +29,6 @@ _DASHBOARD_PRIORITY_COLUMNS = (
     "analyst_rating",
     "rating",
     "analyst_price_target_deviation",
-    "analyst_trend",
     "representative_index_ticker",
 )
 
@@ -48,7 +46,6 @@ _COLUMN_LABELS = {
     "combined_score": "Combined Score",
     "analyst_rating": "Analyst Rating",
     "analyst_price_target_deviation": "Price Target Dev",
-    "analyst_trend": "Analyst Trend",
 }
 
 _DASHBOARD_FETCH_LIMIT = 50
@@ -64,9 +61,14 @@ def get_dashboard_context(table_name: str) -> dict:
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
         "table_name": table_name,
-        "display_title": _TABLE_TITLES.get(table_name, table_name.replace("_", " ").title()),
+        "display_title": _TABLE_TITLES.get(
+            table_name, table_name.replace("_", " ").title()
+        ),
         "columns": columns,
-        "column_labels": {column: _COLUMN_LABELS.get(column, column.replace("_", " ").upper()) for column in columns},
+        "column_labels": {
+            column: _COLUMN_LABELS.get(column, column.replace("_", " ").upper())
+            for column in columns
+        },
         "rows": rows_df.to_dicts(),
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
@@ -111,13 +113,17 @@ def get_positions_treemap_context(group_by: str) -> dict:
         .sort("value", descending=True)
     )
 
-    total_value = float(exposure_df["value"].sum()) if not exposure_df.is_empty() else 0.0
+    total_value = (
+        float(exposure_df["value"].sum()) if not exposure_df.is_empty() else 0.0
+    )
     items = [
         {
             "label": row["label"],
             "value": round(float(row["value"]), 2),
             "formatted_value": _format_currency(float(row["value"])),
-            "share_pct": _format_percent((float(row["value"]) / total_value) if total_value else 0.0),
+            "share_pct": _format_percent(
+                (float(row["value"]) / total_value) if total_value else 0.0
+            ),
         }
         for row in exposure_df.to_dicts()
     ]
@@ -175,7 +181,9 @@ def get_nav_context() -> dict | None:
         "day_change_pct": _format_signed_percent(day_change_pct),
         "change_positive": day_change >= 0,
         "latest_date": _format_header_date(dates[-1]),
-        "previous_date": _format_header_date(dates[-2] if len(dates) > 1 else dates[-1]),
+        "previous_date": _format_header_date(
+            dates[-2] if len(dates) > 1 else dates[-1]
+        ),
         "reference_nav": _format_currency(previous_nav),
         "max_drawdown": _format_signed_percent(max_drawdown),
         "max_upside": _format_signed_percent(max_upside),
@@ -188,9 +196,7 @@ def get_dashboard_columns(table_name: str) -> list[str]:
     by_lower = {column.lower(): column for column in available_columns}
 
     selected_columns = [
-        by_lower[column]
-        for column in _DASHBOARD_PRIORITY_COLUMNS
-        if column in by_lower
+        by_lower[column] for column in _DASHBOARD_PRIORITY_COLUMNS if column in by_lower
     ]
 
     date_column = by_lower.get(get_date_column_name(table_name).lower())
@@ -208,7 +214,9 @@ def fetch_rows_for_selected_date(
 ):
     if selected_date is None:
         return empty_table_frame(table_name, columns=columns)
-    return fetch_top_rows_for_date(table_name, selected_date, limit=_DASHBOARD_FETCH_LIMIT, columns=columns)
+    return fetch_top_rows_for_date(
+        table_name, selected_date, limit=_DASHBOARD_FETCH_LIMIT, columns=columns
+    )
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
@@ -221,7 +229,6 @@ def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
         "analyst_rating",
         "rating",
         "analyst_price_target_deviation",
-        "analyst_trend",
         "beta",
     )
     primary_columns = [c for c in primary_order if c in columns]
@@ -302,6 +309,7 @@ def _format_signed_percent(value: float) -> str:
 
 def _format_percent(value: float) -> str:
     return f"{value * 100:,.2f}%"
+
 
 __all__ = [
     "UndefinedTable",
