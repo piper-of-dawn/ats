@@ -19,25 +19,42 @@ def winsorize_log_returns_inplace(df: pl.DataFrame, return_col="log_return", thr
     return df.with_columns(pl.when(c.abs() > cap).then(c.sign() * cap).otherwise(c).alias(return_col))
 
 class EquityTicker(YfTicker):
-    def __init__(self, ticker: str, mkt_index: "EquityTicker|None" = None):
+    def __init__(
+        self,
+        ticker: str,
+        mkt_index: "EquityTicker|None" = None,
+        price_data: pl.DataFrame | None = None,
+    ):
         super().__init__(ticker)
         self.ticker, self.mkt_index = ticker, mkt_index
-        self._price_data = None
+        self._price_data = price_data
         self._log_returns_winsorized = False
 
     @property
     def price_data(self) -> pl.DataFrame:
         if self._price_data is None:
-            self._price_data = self._fetch_price_data_from_yahoo()
+            self.fetch_price_data()
         return self._price_data
 
     @price_data.setter
     def price_data(self, value: pl.DataFrame | None):
         self._price_data = value
 
-    def _fetch_price_data_from_yahoo(self) -> pl.DataFrame:
+    def fetch_price_data(
+        self,
+        period: str = "1y",
+        *,
+        all_available_price_history: bool = False,
+    ) -> "EquityTicker":
+        if all_available_price_history:
+            period = "max"
+        self._price_data = self._fetch_price_data_from_yahoo(period=period)
+        self._log_returns_winsorized = False
+        return self
+
+    def _fetch_price_data_from_yahoo(self, period: str = "1y") -> pl.DataFrame:
         yahoo_history = super().history(
-            period="1y",
+            period=period,
             auto_adjust=False,
             actions=False,
         )
@@ -158,26 +175,48 @@ class EquityTicker(YfTicker):
         return self
 
     def __weighted_avg_tail__ (self, tail_size: int, array):
+        tail_size = min(tail_size, len(array))
+        if tail_size == 0:
+            return np.nan
         w = np.arange(1, tail_size + 1)
         return np.dot(array[-tail_size:], w) / w.sum()
 
-    def _prepare_momentum_data(self, winsorize=True, use_idiosyncratic_returns=True):
-        if "log_return" not in self.price_data.columns:
+    def _prepare_price_data_for_window(self, lookback_window: int | None):
+        self._require_data()
+        if lookback_window is not None:
+            if lookback_window <= 0:
+                raise ValueError("lookback_window must be positive.")
+            columns = [column for column in ("date", "close", "ticker") if column in self.price_data.columns]
+            self.price_data = self.price_data.select(columns).sort("date").tail(lookback_window + 1)
             self.make_log_returns()
+            self.price_data = self.price_data.tail(lookback_window)
+            self._log_returns_winsorized = False
+        elif "log_return" not in self.price_data.columns:
+            self.make_log_returns()
+        return self
+
+    def _prepare_momentum_data(self, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
+        self._prepare_price_data_for_window(lookback_window)
         if winsorize and not self._log_returns_winsorized:
             self.winsorize_log_returns()
         if use_idiosyncratic_returns:
             if not self.mkt_index:
                 raise ValueError("Market index is required for idiosyncratic momentum.")
-            if "log_return" not in self.mkt_index.price_data.columns:
-                self.mkt_index.make_log_returns()
+            self.mkt_index._prepare_price_data_for_window(lookback_window)
             if winsorize and not self.mkt_index._log_returns_winsorized:
                 self.mkt_index.winsorize_log_returns()
-            if "mkt_log_return" not in self.price_data.columns:
+            if lookback_window is not None and hasattr(self, "beta"):
+                del self.beta
+            if lookback_window is not None or "mkt_log_return" not in self.price_data.columns:
+                self.price_data = self.price_data.drop(
+                    [column for column in ("mkt_log_return", "idiosyncratic_returns") if column in self.price_data.columns]
+                )
                 self.join_with_market_index()
             if not hasattr(self, "beta"):
                 self.compute_beta()
-            if "idiosyncratic_returns" not in self.price_data.columns:
+            if lookback_window is not None or "idiosyncratic_returns" not in self.price_data.columns:
+                if "idiosyncratic_returns" in self.price_data.columns:
+                    self.price_data = self.price_data.drop("idiosyncratic_returns")
                 self.get_idiosyncratic_returns()
         elif "idiosyncratic_returns" not in self.price_data.columns:
             self.price_data = self.price_data.with_columns(
@@ -185,28 +224,34 @@ class EquityTicker(YfTicker):
             ).drop_nulls()
         return self
 
-    def get_long_term_momentum_signal(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True):
-        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns)
+    def get_long_term_momentum_signal(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
+        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns, lookback_window=lookback_window)
         eta = np.log(2) / half_life
         ltm = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
         self.ltm = self.__weighted_avg_tail__(5,ltm)
         return self
 
-    def get_short_term_momentum_signal(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True):
-        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns)
+    def get_short_term_momentum_signal(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
+        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns, lookback_window=lookback_window)
         eta = np.log(2) / half_life
         stm = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
         self.stm = self.__weighted_avg_tail__(5, stm)
         return self
 
-    def _get_stm_series(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}):
-        self._require_data()
+    def _get_stm_series(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}, lookback_window: int | None = None):
+        if lookback_window is not None:
+            self._prepare_momentum_data(lookback_window=lookback_window)
+        else:
+            self._require_data()
         eta = np.log(2) / half_life
         stm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
         return stm_series
 
-    def _get_ltm_series(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}):
-        self._require_data()
+    def _get_ltm_series(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}, lookback_window: int | None = None):
+        if lookback_window is not None:
+            self._prepare_momentum_data(lookback_window=lookback_window)
+        else:
+            self._require_data()
         eta = np.log(2) / half_life
         ltm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
         return ltm_series

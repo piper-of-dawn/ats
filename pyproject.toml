@@ -34,6 +34,8 @@ dev = [
 
 [project.scripts]
 ats = "ats.orchestration:main"
+trading212-gmail-sync = "ats.gmail_sync:main"
+announce-fund-nav = "ats.announce_fund_nav:main"
 
 
 [tool.setuptools]
