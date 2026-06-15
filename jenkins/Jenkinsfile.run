@@ -49,6 +49,7 @@ pipeline {
                         --entrypoint sh \
                         "${IMAGE_NAME}:latest" \
                         -c '
+                            set -eu
                             old_ifs="$IFS"
                             IFS=","
                             for source_table in $SOURCE_TABLES; do

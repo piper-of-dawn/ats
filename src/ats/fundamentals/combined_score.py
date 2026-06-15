@@ -15,7 +15,6 @@ METRIC_WEIGHTS = {
     "analyst_rating": 0.10,
     "analyst_price_target_deviation": 0.10,
     "beta": 0.10,
-    "analyst_trend": 0.10,
 }
 
 METRIC_DIRECTIONS = {
@@ -24,19 +23,9 @@ METRIC_DIRECTIONS = {
     "analyst_rating": 1,
     "analyst_price_target_deviation": -1,
     "beta": -1,
-    "analyst_trend": 1,
-}
-
-ANALYST_TREND_SCORE = {
-    "massively deteriorating": -2.0,
-    "deteriorating": -1.0,
-    "stable": 0.0,
-    "improving": 1.0,
-    "massively improving": 2.0,
 }
 
 RATING_COLUMN_CANDIDATES = ("analyst_rating", "rating")
-DERIVED_METRIC_COLUMNS = {"analyst_trend": "analyst_trend_score"}
 
 
 def _metric_quantile_name(metric: str) -> str:
@@ -45,9 +34,9 @@ def _metric_quantile_name(metric: str) -> str:
 
 def _resolve_metric_columns(df: pl.DataFrame) -> dict[str, str]:
     metric_columns = {
-        metric: DERIVED_METRIC_COLUMNS.get(metric, metric)
+        metric: metric
         for metric in METRIC_WEIGHTS
-        if DERIVED_METRIC_COLUMNS.get(metric, metric) in df.columns
+        if metric in df.columns
     }
     if "analyst_rating" not in metric_columns:
         for candidate in RATING_COLUMN_CANDIDATES:
@@ -55,18 +44,6 @@ def _resolve_metric_columns(df: pl.DataFrame) -> dict[str, str]:
                 metric_columns["analyst_rating"] = candidate
                 break
     return metric_columns
-
-
-def add_derived_metric_columns(df: pl.DataFrame) -> pl.DataFrame:
-    if "analyst_trend" not in df.columns:
-        return df
-
-    return df.with_columns(
-        pl.col("analyst_trend")
-        .replace_strict(ANALYST_TREND_SCORE, default=None, return_dtype=pl.Float64)
-        .alias("analyst_trend_score")
-    )
-
 
 def add_metric_quantiles(
     df: pl.DataFrame,
@@ -126,7 +103,6 @@ def compute_combined_score(df: pl.DataFrame) -> pl.DataFrame:
     if missing_key_columns:
         raise ValueError(f"Missing required columns: {sorted(missing_key_columns)}")
 
-    df = add_derived_metric_columns(df)
     metric_columns = _resolve_metric_columns(df)
     missing_metrics = sorted(set(METRIC_WEIGHTS) - set(metric_columns))
     if missing_metrics:
