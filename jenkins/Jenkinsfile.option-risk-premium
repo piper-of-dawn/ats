@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 24, unit: 'HOURS')
+    }
+
+    triggers {
+        cron('TZ=Europe/Berlin\n0 6 * * *')
+    }
+
+    parameters {
+        string(name: 'IMAGE_NAME', defaultValue: 'ats', description: 'Local Docker image name on the Jenkins server.')
+        string(name: 'APP_ENV_FILE', defaultValue: '/var/lib/jenkins/ats/app.env', description: 'Runtime env file passed into docker run. Must include POLYGON_IO and database credentials.')
+        string(name: 'CONTAINER_NAME_PREFIX', defaultValue: 'ats-option-risk-premium', description: 'Prefix used for the transient docker container name.')
+        string(name: 'SOURCE_TABLES', defaultValue: 'us_largecap,us_midcap', description: 'Comma-separated source universe tables to update.')
+        string(name: 'LIMIT', defaultValue: '', description: 'Optional per-table ticker limit for smoke runs. Leave blank for all tickers.')
+    }
+
+    stages {
+        stage('Verify Tooling') {
+            steps {
+                sh 'docker --version'
+                sh 'docker info >/dev/null'
+            }
+        }
+
+        stage('Verify Image And Env') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    test -f "${APP_ENV_FILE}"
+                    docker image inspect "${IMAGE_NAME}:latest" >/dev/null
+                '''
+            }
+        }
+
+        stage('Update Option Risk Premium') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+
+                    docker run --rm \
+                        --name "${container_name}" \
+                        --env-file "${APP_ENV_FILE}" \
+                        -e SOURCE_TABLES="${SOURCE_TABLES}" \
+                        -e LIMIT="${LIMIT}" \
+                        --entrypoint sh \
+                        "${IMAGE_NAME}:latest" \
+                        -c '
+                            set -eu
+                            old_ifs="$IFS"
+                            IFS=","
+                            for source_table in $SOURCE_TABLES; do
+                                source_table="$(printf "%s" "$source_table" | xargs)"
+                                if [ -n "$source_table" ]; then
+                                    if [ -n "${LIMIT:-}" ]; then
+                                        update-option-risk-premium "$source_table" --limit "$LIMIT"
+                                    else
+                                        update-option-risk-premium "$source_table"
+                                    fi
+                                fi
+                            done
+                            IFS="$old_ifs"
+                        '
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Completed option implied risk premium update for ${params.SOURCE_TABLES} using ${params.IMAGE_NAME}:latest."
+        }
+    }
+}

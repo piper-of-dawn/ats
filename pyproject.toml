@@ -36,6 +36,7 @@ dev = [
 ats = "ats.orchestration:main"
 trading212-gmail-sync = "ats.gmail_sync:main"
 announce-fund-nav = "ats.announce_fund_nav:main"
+update-option-risk-premium = "ats.derivatives.update_option_risk_premium:main"
 
 
 [tool.setuptools]

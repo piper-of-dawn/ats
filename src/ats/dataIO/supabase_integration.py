@@ -146,6 +146,27 @@ def get_table_columns(table_name: str) -> list[str]:
             return [row[0] for row in cur.fetchall()]
 
 
+def add_columns_if_missing(table_name: str, column_definitions: dict[str, str]) -> None:
+    if not column_definitions:
+        return
+    clauses = [
+        sql.SQL("ADD COLUMN IF NOT EXISTS {} {}").format(
+            sql.Identifier(column_name),
+            sql.SQL(column_type),
+        )
+        for column_name, column_type in column_definitions.items()
+    ]
+    query = sql.SQL("ALTER TABLE {} {}").format(
+        sql.Identifier(table_name),
+        sql.SQL(", ").join(clauses),
+    )
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
+        conn.commit()
+    get_table_columns.cache_clear()
+
+
 @lru_cache(maxsize=64)
 def get_date_column_name(table_name: str) -> str:
     columns = get_table_columns(table_name)

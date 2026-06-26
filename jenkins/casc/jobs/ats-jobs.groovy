@@ -70,3 +70,25 @@ pipelineJob('ATS/gmail-sync') {
         }
     }
 }
+
+pipelineJob('ATS/option-risk-premium') {
+    displayName('ATS Option Risk Premium')
+    description('Runs the long option implied risk premium update using jenkins/Jenkinsfile.option-risk-premium')
+    definition {
+        cpsScm {
+            scm {
+                git {
+                    remote {
+                        url(repoUrl)
+                        if (repoCredentialsId) {
+                            credentials(repoCredentialsId)
+                        }
+                    }
+                    branch(buildBranch)
+                }
+            }
+            scriptPath('jenkins/Jenkinsfile.option-risk-premium')
+            lightweight(true)
+        }
+    }
+}
