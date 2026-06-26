@@ -29,44 +29,57 @@ pipeline {
 
         stage('Verify Image And Env') {
             steps {
-                sh '''
-                    set -euo pipefail
-                    test -f "${APP_ENV_FILE}"
-                    docker image inspect "${IMAGE_NAME}:latest" >/dev/null
-                '''
+                withEnv([
+                    "APP_ENV_FILE=${params.APP_ENV_FILE}",
+                    "IMAGE_NAME=${params.IMAGE_NAME}",
+                ]) {
+                    sh '''
+                        set -euo pipefail
+                        test -f "${APP_ENV_FILE}"
+                        docker image inspect "${IMAGE_NAME}:latest" >/dev/null
+                    '''
+                }
             }
         }
 
         stage('Update Option Risk Premium') {
             steps {
-                sh '''
-                    set -euo pipefail
-                    container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
+                withEnv([
+                    "APP_ENV_FILE=${params.APP_ENV_FILE}",
+                    "CONTAINER_NAME_PREFIX=${params.CONTAINER_NAME_PREFIX}",
+                    "IMAGE_NAME=${params.IMAGE_NAME}",
+                    "LIMIT=${params.LIMIT}",
+                    "SOURCE_TABLES=${params.SOURCE_TABLES}",
+                ]) {
+                    sh '''
+                        set -euo pipefail
+                        container_name="${CONTAINER_NAME_PREFIX}-${BUILD_NUMBER}"
 
-                    docker run --rm \
-                        --name "${container_name}" \
-                        --env-file "${APP_ENV_FILE}" \
-                        -e SOURCE_TABLES="${SOURCE_TABLES}" \
-                        -e LIMIT="${LIMIT}" \
-                        --entrypoint sh \
-                        "${IMAGE_NAME}:latest" \
-                        -c '
-                            set -eu
-                            old_ifs="$IFS"
-                            IFS=","
-                            for source_table in $SOURCE_TABLES; do
-                                source_table="$(printf "%s" "$source_table" | xargs)"
-                                if [ -n "$source_table" ]; then
-                                    if [ -n "${LIMIT:-}" ]; then
-                                        update-option-risk-premium "$source_table" --limit "$LIMIT"
-                                    else
-                                        update-option-risk-premium "$source_table"
+                        docker run --rm \
+                            --name "${container_name}" \
+                            --env-file "${APP_ENV_FILE}" \
+                            -e SOURCE_TABLES="${SOURCE_TABLES}" \
+                            -e LIMIT="${LIMIT}" \
+                            --entrypoint sh \
+                            "${IMAGE_NAME}:latest" \
+                            -c '
+                                set -eu
+                                old_ifs="$IFS"
+                                IFS=","
+                                for source_table in $SOURCE_TABLES; do
+                                    source_table="$(printf "%s" "$source_table" | xargs)"
+                                    if [ -n "$source_table" ]; then
+                                        if [ -n "${LIMIT:-}" ]; then
+                                            update-option-risk-premium "$source_table" --limit "$LIMIT"
+                                        else
+                                            update-option-risk-premium "$source_table"
+                                        fi
                                     fi
-                                fi
-                            done
-                            IFS="$old_ifs"
-                        '
-                '''
+                                done
+                                IFS="$old_ifs"
+                            '
+                    '''
+                }
             }
         }
     }

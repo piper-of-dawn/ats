@@ -13,5 +13,6 @@ env.toml
 DATA/
 .diag/
 notebooks/
+RnD/gics_barra_*.parquet
 output/
 DEV/
