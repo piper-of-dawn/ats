@@ -30,8 +30,8 @@ pipeline {
         stage('Verify Image And Env') {
             steps {
                 withEnv([
-                    "APP_ENV_FILE=${params.APP_ENV_FILE}",
-                    "IMAGE_NAME=${params.IMAGE_NAME}",
+                    "APP_ENV_FILE=${params.APP_ENV_FILE ?: '/var/lib/jenkins/ats/app.env'}",
+                    "IMAGE_NAME=${params.IMAGE_NAME ?: 'ats'}",
                 ]) {
                     sh '''
                         set -euo pipefail
@@ -45,11 +45,11 @@ pipeline {
         stage('Update Option Risk Premium') {
             steps {
                 withEnv([
-                    "APP_ENV_FILE=${params.APP_ENV_FILE}",
-                    "CONTAINER_NAME_PREFIX=${params.CONTAINER_NAME_PREFIX}",
-                    "IMAGE_NAME=${params.IMAGE_NAME}",
-                    "LIMIT=${params.LIMIT}",
-                    "SOURCE_TABLES=${params.SOURCE_TABLES}",
+                    "APP_ENV_FILE=${params.APP_ENV_FILE ?: '/var/lib/jenkins/ats/app.env'}",
+                    "CONTAINER_NAME_PREFIX=${params.CONTAINER_NAME_PREFIX ?: 'ats-option-risk-premium'}",
+                    "IMAGE_NAME=${params.IMAGE_NAME ?: 'ats'}",
+                    "LIMIT=${params.LIMIT ?: ''}",
+                    "SOURCE_TABLES=${params.SOURCE_TABLES ?: 'us_largecap,us_midcap'}",
                 ]) {
                     sh '''
                         set -euo pipefail
@@ -59,7 +59,7 @@ pipeline {
                             --name "${container_name}" \
                             --env-file "${APP_ENV_FILE}" \
                             -e SOURCE_TABLES="${SOURCE_TABLES}" \
-                            -e LIMIT="${LIMIT}" \
+                            -e LIMIT="${LIMIT:-}" \
                             --entrypoint sh \
                             "${IMAGE_NAME}:latest" \
                             -c '
