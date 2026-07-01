@@ -75,19 +75,27 @@
       .call(d3.axisLeft(y).ticks(4).tickSize(-innerWidth).tickFormat(""));
 
     const curve = points.length > 1 ? d3.curveMonotoneX : d3.curveLinear;
-    const correlationLine = d3.line()
-      .x((point) => x(point.date))
-      .y((point) => y(point.correlation))
-      .curve(curve);
     const giniLine = d3.line()
       .x((point) => x(point.date))
       .y((point) => y(point.gini * 100))
       .curve(curve);
 
-    plot.append("path")
-      .datum(points)
-      .attr("class", "portfolio-history-line")
-      .attr("d", correlationLine)
+    plot.append("line")
+      .attr("class", "portfolio-history-zero-line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", y(0))
+      .attr("y2", y(0));
+
+    plot.selectAll(".portfolio-history-lollipop-stem")
+      .data(points)
+      .enter()
+      .append("line")
+      .attr("class", "portfolio-history-lollipop-stem")
+      .attr("x1", (point) => x(point.date))
+      .attr("x2", (point) => x(point.date))
+      .attr("y1", y(0))
+      .attr("y2", (point) => y(point.correlation))
       .attr("stroke", lineA);
 
     plot.append("path")
@@ -147,11 +155,16 @@
       .attr("transform", `translate(${margin.left},${height - 16})`);
 
     [
-      ["Correlation", lineA],
-      ["Gini x100", lineB],
-    ].forEach(([label, color], index) => {
+      ["Correlation", lineA, "lollipop"],
+      ["Gini x100", lineB, "line"],
+    ].forEach(([label, color, shape], index) => {
       const item = legend.append("g").attr("transform", `translate(${index * 132},0)`);
-      item.append("line").attr("x1", 0).attr("x2", 22).attr("y1", 0).attr("y2", 0).attr("stroke", color).attr("stroke-width", 2.4);
+      if (shape === "lollipop") {
+        item.append("line").attr("x1", 11).attr("x2", 11).attr("y1", -8).attr("y2", 2).attr("stroke", color).attr("stroke-width", 1.4);
+        item.append("circle").attr("cx", 11).attr("cy", -8).attr("r", 4).attr("fill", color);
+      } else {
+        item.append("line").attr("x1", 0).attr("x2", 22).attr("y1", 0).attr("y2", 0).attr("stroke", color).attr("stroke-width", 2.4);
+      }
       item.append("text").attr("x", 30).attr("y", 4).attr("fill", labelColor).text(label);
     });
 
