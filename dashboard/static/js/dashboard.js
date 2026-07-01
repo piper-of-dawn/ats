@@ -1,5 +1,6 @@
 (function () {
   const THEME_STORAGE_KEY = "dashboard-theme";
+  const DEFAULT_TABLE_PAGE_SIZE = 25;
 
   const getTheme = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
 
@@ -153,6 +154,82 @@
       );
       sortedRows.forEach((row) => mobileTable.appendChild(row));
     }
+
+    renderTablePage(card, 1);
+  };
+
+  const getTableRows = (card, selector) => Array.from(card.querySelectorAll(selector));
+
+  const getPageSize = (card) => {
+    const pageSizeSelect = card.querySelector("[data-table-page-size]");
+    const pageSize = Number(pageSizeSelect?.value || DEFAULT_TABLE_PAGE_SIZE);
+    return Number.isFinite(pageSize) && pageSize > 0 ? pageSize : DEFAULT_TABLE_PAGE_SIZE;
+  };
+
+  const getCurrentPage = (card) => {
+    const currentPage = Number(card.dataset.tableCurrentPage || 1);
+    return Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
+  };
+
+  const setRowsForPage = (rows, currentPage, pageSize) => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    rows.forEach((row, index) => {
+      row.hidden = index < startIndex || index >= endIndex;
+    });
+  };
+
+  const renderTablePage = (card, requestedPage = getCurrentPage(card)) => {
+    const pagination = card.querySelector("[data-table-pagination]");
+    if (!pagination) return;
+
+    const desktopRows = getTableRows(card, ".desktop-table tbody tr[data-original-index]");
+    const mobileRows = getTableRows(card, ".mobile-table .mobile-row[data-original-index]");
+    const totalRows = Math.max(desktopRows.length, mobileRows.length);
+    const pageSize = getPageSize(card);
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    const currentPage = Math.min(Math.max(1, requestedPage), totalPages);
+    const firstVisibleRow = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const lastVisibleRow = totalRows === 0 ? 0 : Math.min(currentPage * pageSize, totalRows);
+
+    card.dataset.tableCurrentPage = String(currentPage);
+    setRowsForPage(desktopRows, currentPage, pageSize);
+    setRowsForPage(mobileRows, currentPage, pageSize);
+
+    const status = pagination.querySelector("[data-table-pagination-status]");
+    const previousButton = pagination.querySelector("[data-table-page-prev]");
+    const nextButton = pagination.querySelector("[data-table-page-next]");
+
+    if (status) {
+      status.textContent = totalRows === 0
+        ? "0 rows"
+        : `${firstVisibleRow}-${lastVisibleRow} of ${totalRows}`;
+    }
+    if (previousButton) {
+      previousButton.disabled = currentPage <= 1;
+    }
+    if (nextButton) {
+      nextButton.disabled = currentPage >= totalPages;
+    }
+  };
+
+  const initTablePagination = (root = document) => {
+    root.querySelectorAll("[data-table-pagination]").forEach((pagination) => {
+      if (pagination.dataset.initialized === "true") return;
+      pagination.dataset.initialized = "true";
+
+      const card = pagination.closest(".card");
+      if (!card) return;
+
+      const pageSizeSelect = pagination.querySelector("[data-table-page-size]");
+      const previousButton = pagination.querySelector("[data-table-page-prev]");
+      const nextButton = pagination.querySelector("[data-table-page-next]");
+
+      pageSizeSelect?.addEventListener("change", () => renderTablePage(card, 1));
+      previousButton?.addEventListener("click", () => renderTablePage(card, getCurrentPage(card) - 1));
+      nextButton?.addEventListener("click", () => renderTablePage(card, getCurrentPage(card) + 1));
+      renderTablePage(card, 1);
+    });
   };
 
   const initTableSortControls = (root = document) => {
@@ -187,6 +264,7 @@
     try {
       await loadComponentMarkup(slot);
       if (slot.dataset.componentKind === "table") {
+        initTablePagination(slot);
         initTableSortControls(slot);
       }
       if (slot.dataset.componentKind === "nav") {
@@ -231,6 +309,7 @@
 
   window.addEventListener("DOMContentLoaded", async () => {
     initThemeToggle();
+    initTablePagination();
     initTableSortControls();
     try {
       await waitForChartLibraries();

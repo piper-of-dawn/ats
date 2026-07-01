@@ -49,13 +49,13 @@ The dashboard reads directly from Supabase/Postgres and renders an HTML table.
   - `jenkins/Jenkinsfile`: multibranch build pipeline for `main`.
   - `jenkins/Jenkinsfile.run`: scheduled pipeline that runs the already-built Docker image.
   - `jenkins/Jenkinsfile.gmail`: scheduled pipeline that runs the Gmail statement import at `07:00` in `Europe/Berlin`.
-  - `jenkins/Jenkinsfile.option-risk-premium`: long-running pipeline that updates `option_implied_risk_premium` for `us_largecap_metrics` and `us_midcap_metrics` at `06:00` in `Europe/Berlin`.
+  - `jenkins/Jenkinsfile.option-risk-premium`: manual long-running pipeline that updates `option_implied_risk_premium` for `us_largecap_metrics` and `us_midcap_metrics`.
 - Jenkins should be configured to discover only `main`, with periodic scans instead of webhook triggers.
 - The build pipeline checks whether the current `main` commit differs from the last successfully built commit recorded on the Jenkins host. It rebuilds only when a new commit is present, unless `FORCE_REBUILD=true`.
 - On rebuild, Jenkins builds the wheel with `just build`, optionally runs `uv run pytest -q`, then builds the Docker image locally as `ats:latest`.
 - The scheduled run job is responsible for the daily execution of ATS commands at `08:00` in `Europe/Berlin` time, which covers CET/CEST automatically.
 - The Gmail sync job is responsible for the daily Trading 212 statement import at `07:00` in `Europe/Berlin` time, which covers CET/CEST automatically.
-- The option risk premium job is intentionally separate because Polygon free-tier option aggregate calls make the full large/midcap update long-running.
+- The option risk premium job is intentionally separate and manual because Polygon free-tier option aggregate calls make the full large/midcap update long-running.
 - Docker registry push/pull is intentionally not used in the active setup.
 - After a rebuild, Jenkins can prune dangling images and builder cache to limit disk growth.
 

@@ -29,7 +29,6 @@ _DASHBOARD_PRIORITY_COLUMNS = (
     "analyst_rating",
     "rating",
     "analyst_price_target_deviation",
-    "option_implied_risk_premium",
     "representative_index_ticker",
 )
 
@@ -47,7 +46,6 @@ _COLUMN_LABELS = {
     "combined_score": "Combined Score",
     "analyst_rating": "Analyst Rating",
     "analyst_price_target_deviation": "Price Target Dev",
-    "option_implied_risk_premium": "Option IV Premium",
 }
 
 def get_dashboard_context(table_name: str) -> dict:
@@ -287,7 +285,6 @@ def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
         "analyst_rating",
         "rating",
         "analyst_price_target_deviation",
-        "option_implied_risk_premium",
         "beta",
     )
     primary_columns = [c for c in primary_order if c in columns]

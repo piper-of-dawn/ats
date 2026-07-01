@@ -863,6 +863,72 @@ body.dashboard .card {
   font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--table-border-soft);
+}
+
+.table-pagination-status {
+  color: var(--label-strong);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "liga" 0;
+}
+
+.table-pagination-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-pagination-controls label {
+  display: grid;
+  gap: 5px;
+  min-width: 76px;
+}
+
+.table-pagination-controls span {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--label-strong);
+  text-transform: uppercase;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.table-pagination-controls select,
+.table-pagination-controls button {
+  min-height: 32px;
+  border: 1px solid var(--table-border-soft);
+  border-radius: 6px;
+  background: var(--subtle-surface);
+  color: var(--value-strong);
+  font-size: 12px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.table-pagination-controls select {
+  padding: 6px 28px 6px 9px;
+}
+
+.table-pagination-controls button {
+  min-width: 68px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.table-pagination-controls button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .table-card-badge {
   flex-shrink: 0;
   padding: 8px 10px;
@@ -1223,6 +1289,20 @@ td.status {
 
   .table-sort-controls label {
     flex: 1 1 130px;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-pagination-controls {
+    justify-content: stretch;
+  }
+
+  .table-pagination-controls label,
+  .table-pagination-controls button {
+    flex: 1 1 92px;
   }
 
   .nav-metric-grid {

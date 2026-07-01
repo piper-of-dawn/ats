@@ -68,4 +68,20 @@
     </details>
     {% endfor %}
   </div>
+  <div class="table-pagination" data-table-pagination>
+    <div class="table-pagination-status" data-table-pagination-status></div>
+    <div class="table-pagination-controls">
+      <label>
+        <span>Rows</span>
+        <select data-table-page-size aria-label="Rows per page">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+      <button type="button" data-table-page-prev aria-label="Previous page">Prev</button>
+      <button type="button" data-table-page-next aria-label="Next page">Next</button>
+    </div>
+  </div>
 </div>
