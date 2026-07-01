@@ -6,7 +6,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import dashboard.data as data
+from dashboard.app import create_app
 import polars as pl
+from flask import render_template
 
 
 def test_dashboard_columns_include_option_implied_risk_premium(monkeypatch):
@@ -48,3 +50,46 @@ def test_option_implied_risk_premium_has_dashboard_label(monkeypatch):
     context = data.get_dashboard_context("us_largecap_metrics")
 
     assert context["column_labels"]["option_implied_risk_premium"] == "Option IV Premium"
+
+
+def test_dashboard_fetches_all_rows_for_selected_date(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(data, "empty_table_frame", lambda table_name, columns: None)
+    monkeypatch.setattr(
+        data,
+        "fetch_rows_for_date",
+        lambda table_name, selected_date, columns: calls.append(
+            (table_name, selected_date, columns)
+        )
+        or pl.DataFrame({"ticker": ["A", "B"], "stm": [1.0, -1.0]}),
+    )
+
+    result = data.fetch_rows_for_selected_date(
+        "us_largecap_metrics",
+        "2026-07-01",
+        ["ticker", "stm"],
+    )
+
+    assert calls == [("us_largecap_metrics", "2026-07-01", ["ticker", "stm"])]
+    assert result.height == 2
+
+
+def test_table_template_does_not_hide_rows_after_ten():
+    app = create_app()
+    rows = [{"ticker": f"T{i}", "stm": i} for i in range(12)]
+
+    with app.app_context():
+        html = render_template(
+            "table.html",
+            display_title="US Large Cap Highlights",
+            columns=["ticker", "stm"],
+            column_labels={"ticker": "TICKER", "stm": "STM"},
+            rows=rows,
+            mobile_primary_columns=["ticker", "stm"],
+            mobile_detail_columns=[],
+        )
+
+    assert 'data-table-display-limit' not in html
+    assert "hidden" not in html
+    assert "T11" in html

@@ -23,6 +23,7 @@ dependencies = [
     "yfinance==1.2.0",
     "scipy>=1.17.1",
     "dagster>=1.13.7",
+    "statsmodels>=0.14.6",
 ]
 
 [dependency-groups]

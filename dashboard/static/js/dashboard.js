@@ -123,12 +123,6 @@
     });
   };
 
-  const applyDisplayLimit = (elements, limit) => {
-    elements.forEach((element, index) => {
-      element.hidden = index >= limit;
-    });
-  };
-
   const sortTableCard = (card) => {
     const columnSelect = card.querySelector("[data-table-sort-column]");
     const directionSelect = card.querySelector("[data-table-sort-direction]");
@@ -138,7 +132,6 @@
     const direction = directionSelect.value === "desc" ? "desc" : "asc";
     const desktopBody = card.querySelector(".desktop-table tbody");
     const mobileTable = card.querySelector(".mobile-table");
-    const displayLimit = Number(card.dataset.tableDisplayLimit || 10);
 
     if (desktopBody) {
       const sortedRows = sortElements(
@@ -147,7 +140,6 @@
         direction,
       );
       sortedRows.forEach((row) => desktopBody.appendChild(row));
-      applyDisplayLimit(sortedRows, displayLimit);
     }
 
     if (mobileTable) {
@@ -160,7 +152,6 @@
         direction,
       );
       sortedRows.forEach((row) => mobileTable.appendChild(row));
-      applyDisplayLimit(sortedRows, displayLimit);
     }
   };
 

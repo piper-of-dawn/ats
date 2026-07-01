@@ -1,6 +1,5 @@
-{% set visible_limit = display_limit|default(10) %}
 {% set default_sort_column = "combined_score" if "combined_score" in columns else "stm" %}
-<div class="card panel" data-table-display-limit="{{ visible_limit }}">
+<div class="card panel">
   <div class="table-card-header">
     <div class="table-card-title">{{ display_title }}</div>
     <div class="table-sort-controls" data-table-sort-controls>
@@ -32,7 +31,7 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
+        <tr data-original-index="{{ loop.index0 }}">
           {% for col in columns %}
           <td class="{% if 'status' in col.lower() %}status{% endif %}">{{ row.get(col, "") if row.get(col, "") is not none else "" }}</td>
           {% endfor %}
@@ -43,7 +42,7 @@
   </div>
   <div class="mobile-table">
     {% for row in rows %}
-    <details class="mobile-row" data-original-index="{{ loop.index0 }}" {% if loop.index0 >= visible_limit %}hidden{% endif %}>
+    <details class="mobile-row" data-original-index="{{ loop.index0 }}">
       <summary class="mobile-row-summary">
         {% for col in mobile_primary_columns %}
         <div class="mobile-cell" data-column-name="{{ col }}">
