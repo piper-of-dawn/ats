@@ -6,6 +6,7 @@ from dashboard.data import (
     UndefinedTable,
     get_dashboard_context,
     get_nav_context,
+    get_portfolio_history_context,
     get_positions_treemap_context,
 )
 
@@ -37,6 +38,15 @@ def create_app() -> Flask:
         context = get_positions_treemap_context(group_by)
         return render_template("treemap.html", **context), 200
 
+    def render_portfolio_history() -> tuple[str, int]:
+        try:
+            context = get_portfolio_history_context()
+        except (KeyError, UndefinedTable):
+            context = None
+        if context is None:
+            return render_template("nav_unavailable.html"), 200
+        return render_template("portfolio_history_card.html", context=context), 200
+
     @app.get("/")
     def dashboard() -> Response:
         return Response(
@@ -63,6 +73,15 @@ def create_app() -> Flask:
             treemap_html = render_template("table_not_found.html", table_name=f"positions:{group_by}")
             treemap_status = 404
         return Response(treemap_html, status=treemap_status, mimetype="text/html")
+
+    @app.get("/partials/portfolio-history")
+    def portfolio_history_partial() -> Response:
+        portfolio_history_html, portfolio_history_status = render_portfolio_history()
+        return Response(
+            portfolio_history_html,
+            status=portfolio_history_status,
+            mimetype="text/html",
+        )
 
     return app
 

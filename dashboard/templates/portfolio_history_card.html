@@ -1,0 +1,28 @@
+<section class="card portfolio-history-card">
+  <div class="nav-card-header">
+    <div class="nav-card-header-primary">
+      <div class="nav-card-title">Portfolio Structure</div>
+      <div class="nav-card-header-metric portfolio-history-summary">
+        <div>
+          <div class="portfolio-history-label">Correlation Index</div>
+          <div class="portfolio-history-value">{{ context.latest_correlation }}</div>
+        </div>
+        <div>
+          <div class="portfolio-history-label">Gini</div>
+          <div class="portfolio-history-value">{{ context.latest_gini }}</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="nav-card-subtitle">As of {{ context.latest_date }}</div>
+      <div class="nav-card-subtitle">{{ context.number_of_assets }} assets</div>
+    </div>
+  </div>
+  <div class="portfolio-history-chart-wrap">
+    <div
+      id="portfolio-history-chart"
+      class="portfolio-history-chart"
+      data-points='{{ context.chart_points|tojson }}'
+    ></div>
+  </div>
+</section>

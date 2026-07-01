@@ -16,3 +16,4 @@ notebooks/
 RnD/gics_barra_*.parquet
 output/
 DEV/
+logs/

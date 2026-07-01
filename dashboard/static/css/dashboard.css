@@ -573,7 +573,9 @@ body.dashboard .card {
 
 .nav-chart,
 .nav-chart-svg,
-.treemap-svg {
+.treemap-svg,
+.portfolio-history-chart,
+.portfolio-history-svg {
   position: relative;
   z-index: 1;
   display: block;
@@ -617,6 +619,81 @@ body.dashboard .card {
   font-weight: 500;
   letter-spacing: -0.01em;
   fill: var(--label-strong);
+}
+
+.portfolio-history-card {
+  border-radius: 18px;
+}
+
+.portfolio-history-summary {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.portfolio-history-label {
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--label-soft);
+  text-transform: uppercase;
+}
+
+.portfolio-history-value {
+  margin-top: 6px;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--value-strong);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "liga" 0;
+}
+
+.portfolio-history-chart-wrap {
+  position: relative;
+  height: 320px;
+  padding: 8px 14px 12px 10px;
+}
+
+.portfolio-history-chart-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--grid-line) 1px, transparent 1px);
+  background-size: 6px 6px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.portfolio-history-line {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.portfolio-history-axis text,
+.portfolio-history-legend text {
+  fill: var(--label-strong);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-feature-settings: "tnum" 1, "liga" 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.portfolio-history-axis path,
+.portfolio-history-axis line,
+.portfolio-history-grid path {
+  stroke: none;
+}
+
+.portfolio-history-grid line {
+  stroke-dasharray: 2 5;
+}
+
+.portfolio-history-tooltip {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .nav-hover-line {

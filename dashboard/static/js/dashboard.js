@@ -26,6 +26,9 @@
       if (slot.dataset.componentKind === "treemap") {
         await window.DashboardCharts?.initTreemap?.(slot);
       }
+      if (slot.dataset.componentKind === "portfolio-history") {
+        await window.DashboardCharts?.initPortfolioHistoryChart?.(slot);
+      }
     }
   };
 
@@ -200,6 +203,9 @@
       }
       if (slot.dataset.componentKind === "treemap") {
         await window.DashboardCharts?.initTreemap?.(slot);
+      }
+      if (slot.dataset.componentKind === "portfolio-history") {
+        await window.DashboardCharts?.initPortfolioHistoryChart?.(slot);
       }
       slot.dataset.loaded = "true";
     } catch (error) {

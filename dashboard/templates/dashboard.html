@@ -20,6 +20,7 @@
   <script defer src="/static/vendor/d3-annotation.min.js"></script>
   <script src="/static/js/chart-calculations.js"></script>
   <script defer src="/static/js/nav-chart.js"></script>
+  <script defer src="/static/js/portfolio-history-chart.js"></script>
   <script defer src="/static/js/treemap-chart.js"></script>
   <script defer src="/static/js/dashboard.js"></script>
 </head>
@@ -47,6 +48,20 @@
       <div class="card loading-card">
         <div class="loading-card-label">Fund NAV</div>
         <div class="loading-card-title">Loading chart</div>
+        <div class="loading-card-skeleton loading-card-skeleton-lg"></div>
+        <div class="loading-card-skeleton"></div>
+      </div>
+    </section>
+    <section
+      id="portfolio-history-slot"
+      class="lazy-slot"
+      data-component-url="/partials/portfolio-history"
+      data-component-kind="portfolio-history"
+      data-component-label="Portfolio Structure"
+    >
+      <div class="card loading-card">
+        <div class="loading-card-label">Portfolio Structure</div>
+        <div class="loading-card-title">Loading metrics chart</div>
         <div class="loading-card-skeleton loading-card-skeleton-lg"></div>
         <div class="loading-card-skeleton"></div>
       </div>

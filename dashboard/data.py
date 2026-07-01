@@ -193,6 +193,69 @@ def get_nav_context() -> dict | None:
     }
 
 
+def get_portfolio_history_context() -> dict | None:
+    history_df = fetch_table(
+        "portfolio_history",
+        columns=[
+            "date",
+            "realized_correlation_percent",
+            "portfolio_gini",
+            "number_of_assets",
+        ],
+    )
+    if history_df.is_empty():
+        return None
+
+    date_column = _find_column_name(history_df.columns, "date")
+    correlation_column = _find_column_name(
+        history_df.columns,
+        "realized_correlation_percent",
+    )
+    gini_column = _find_column_name(history_df.columns, "portfolio_gini")
+    assets_column = _find_column_name(history_df.columns, "number_of_assets")
+
+    normalized_df = (
+        history_df.select(
+            pl.col(date_column).cast(pl.Date, strict=False).alias("date"),
+            pl.col(correlation_column)
+            .cast(pl.Float64, strict=False)
+            .alias("correlation_percent"),
+            pl.col(gini_column).cast(pl.Float64, strict=False).alias("gini"),
+            pl.col(assets_column).cast(pl.Int64, strict=False).alias("number_of_assets"),
+        )
+        .drop_nulls(["date", "correlation_percent", "gini"])
+        .group_by("date")
+        .agg(
+            pl.col("correlation_percent").first(),
+            pl.col("gini").first(),
+            pl.col("number_of_assets").max(),
+        )
+        .sort("date")
+    )
+    if normalized_df.is_empty():
+        return None
+
+    chart_points = [
+        {
+            "label": _format_chart_label(row["date"]),
+            "raw_date": _format_raw_date(row["date"]),
+            "correlation": round(float(row["correlation_percent"]), 6),
+            "gini": round(float(row["gini"]), 6),
+            "number_of_assets": int(row["number_of_assets"]),
+        }
+        for row in normalized_df.to_dicts()
+    ]
+    latest = normalized_df.row(-1, named=True)
+    return {
+        "latest_date": _format_header_date(latest["date"]),
+        "latest_correlation": f"{float(latest['correlation_percent']):,.2f}%",
+        "latest_gini": f"{float(latest['gini']):,.4f}",
+        "number_of_assets": int(latest["number_of_assets"]),
+        "chart_points": chart_points,
+        "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+    }
+
+
 def get_dashboard_columns(table_name: str) -> list[str]:
     available_columns = get_table_columns(table_name)
     by_lower = {column.lower(): column for column in available_columns}
@@ -318,5 +381,6 @@ __all__ = [
     "UndefinedTable",
     "get_dashboard_context",
     "get_nav_context",
+    "get_portfolio_history_context",
     "get_positions_treemap_context",
 ]
