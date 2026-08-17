@@ -1,21 +1,44 @@
+{% set ranking_enabled = ranking_enabled|default(false) %}
+{% set ranking_strategies = ranking_strategies|default(()) %}
+{% set default_ranking_strategy = default_ranking_strategy|default("momentum_first") %}
 {% set default_sort_column = "combined_score" if "combined_score" in columns else "stm" %}
-<div class="card panel">
+<div class="card panel"{% if ranking_enabled %} data-default-ranking-strategy="{{ default_ranking_strategy }}"{% endif %}>
   <div class="table-card-header">
-    <div class="table-card-title">{{ display_title }}</div>
+    <div class="table-card-heading">
+      <div class="table-card-title">{{ display_title }}</div>
+      {% if ranking_enabled %}
+      <p class="table-ranking-helper" data-table-ranking-helper aria-live="polite">
+        {% for strategy in ranking_strategies if strategy.key == default_ranking_strategy %}{{ strategy.description }}{% endfor %}
+      </p>
+      {% endif %}
+    </div>
     <div class="table-sort-controls" data-table-sort-controls>
       <label>
         <span>Sort</span>
         <select data-table-sort-column aria-label="Sort column">
+          {% if ranking_enabled %}
+          <optgroup label="Ranking strategies">
+            {% for strategy in ranking_strategies %}
+            <option value="rank:{{ strategy.key }}" data-sort-kind="strategy" data-strategy="{{ strategy.key }}" data-description="{{ strategy.description }}" {% if strategy.key == default_ranking_strategy %}selected{% endif %}>{{ strategy.label }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Columns">
+          {% endif %}
           {% for col in columns %}
-          <option value="{{ loop.index0 }}" data-column-name="{{ col }}" {% if col.lower() == default_sort_column %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
+          {% if col != "momentum_rank" %}
+          <option value="{{ loop.index0 }}" data-sort-kind="column" data-column-name="{{ col }}" {% if not ranking_enabled and col.lower() == default_sort_column %}selected{% endif %}>{{ column_labels.get(col, col.replace("_", " ").upper()) }}</option>
+          {% endif %}
           {% endfor %}
+          {% if ranking_enabled %}
+          </optgroup>
+          {% endif %}
         </select>
       </label>
       <label>
         <span>Order</span>
         <select data-table-sort-direction aria-label="Sort direction">
-          <option value="asc">Asc</option>
-          <option value="desc" selected>Desc</option>
+          <option value="asc"{% if ranking_enabled %} selected{% endif %}>{% if ranking_enabled %}Best first{% else %}Asc{% endif %}</option>
+          <option value="desc"{% if not ranking_enabled %} selected{% endif %}>{% if ranking_enabled %}Worst first{% else %}Desc{% endif %}</option>
         </select>
       </label>
     </div>
@@ -31,9 +54,15 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr data-original-index="{{ loop.index0 }}">
+        <tr data-original-index="{{ loop.index0 }}"{% if ranking_enabled %}{% for strategy_key, rank in row.get("_momentum_ranks", {}).items() %} data-rank-{{ strategy_key|replace("_", "-") }}="{{ rank if rank is not none else '' }}"{% endfor %}{% endif %}>
           {% for col in columns %}
-          <td class="{% if 'status' in col.lower() %}status{% endif %}">{{ row.get(col, "") if row.get(col, "") is not none else "" }}</td>
+          <td class="{% if 'status' in col.lower() %}status{% endif %}" data-column-name="{{ col }}">
+            {% if col == "momentum_rank" %}
+            <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% else %}
+            {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+            {% endif %}
+          </td>
           {% endfor %}
         </tr>
         {% endfor %}
@@ -42,13 +71,17 @@
   </div>
   <div class="mobile-table">
     {% for row in rows %}
-    <details class="mobile-row" data-original-index="{{ loop.index0 }}">
+    <details class="mobile-row" data-original-index="{{ loop.index0 }}"{% if ranking_enabled %}{% for strategy_key, rank in row.get("_momentum_ranks", {}).items() %} data-rank-{{ strategy_key|replace("_", "-") }}="{{ rank if rank is not none else '' }}"{% endfor %}{% endif %}>
       <summary class="mobile-row-summary">
         {% for col in mobile_primary_columns %}
         <div class="mobile-cell" data-column-name="{{ col }}">
           <span class="mobile-cell-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
           <span class="mobile-cell-value {% if 'status' in col.lower() %}status{% endif %}">
+            {% if col == "momentum_rank" %}
+            <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% else %}
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+            {% endif %}
           </span>
         </div>
         {% endfor %}
@@ -59,7 +92,11 @@
         <div class="mobile-detail-item" data-column-name="{{ col }}">
           <span class="mobile-detail-label">{{ column_labels.get(col, col.replace("_", " ").upper()) }}</span>
           <span class="mobile-detail-value {% if 'status' in col.lower() %}status{% endif %}">
+            {% if col == "momentum_rank" %}
+            <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% else %}
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
+            {% endif %}
           </span>
         </div>
         {% endfor %}

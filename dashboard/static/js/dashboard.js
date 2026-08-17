@@ -124,32 +124,82 @@
     });
   };
 
+  const rankingAttributeName = (strategy) => `data-rank-${strategy.replaceAll("_", "-")}`;
+
+  const selectedSortOption = (columnSelect) => columnSelect.options[columnSelect.selectedIndex];
+
+  const isStrategyOption = (option) => option?.dataset.sortKind === "strategy";
+
+  const strategyOptionFor = (columnSelect, strategy) => Array.from(columnSelect.options)
+    .find((option) => option.dataset.strategy === strategy);
+
+  const updateRankingPresentation = (card, columnSelect) => {
+    const selectedOption = selectedSortOption(columnSelect);
+    const strategy = isStrategyOption(selectedOption)
+      ? selectedOption.dataset.strategy
+      : card.dataset.defaultRankingStrategy;
+    if (!strategy) return;
+
+    const rankAttribute = rankingAttributeName(strategy);
+    card.querySelectorAll("[data-original-index]").forEach((row) => {
+      const rank = row.getAttribute(rankAttribute) || "—";
+      row.querySelectorAll("[data-momentum-rank-value]").forEach((value) => {
+        value.textContent = rank;
+      });
+    });
+
+    const helper = card.querySelector("[data-table-ranking-helper]");
+    const strategyOption = strategyOptionFor(columnSelect, strategy);
+    if (helper && strategyOption?.dataset.description) {
+      helper.textContent = strategyOption.dataset.description;
+    }
+  };
+
+  const updateOrderLabels = (columnSelect, directionSelect) => {
+    const strategySelected = isStrategyOption(selectedSortOption(columnSelect));
+    const ascendingOption = directionSelect.querySelector('option[value="asc"]');
+    const descendingOption = directionSelect.querySelector('option[value="desc"]');
+    if (ascendingOption) ascendingOption.textContent = strategySelected ? "Best first" : "Asc";
+    if (descendingOption) descendingOption.textContent = strategySelected ? "Worst first" : "Desc";
+    directionSelect.setAttribute(
+      "aria-label",
+      strategySelected ? "Ranking order" : "Sort direction",
+    );
+  };
+
   const sortTableCard = (card) => {
     const columnSelect = card.querySelector("[data-table-sort-column]");
     const directionSelect = card.querySelector("[data-table-sort-direction]");
     if (!columnSelect || !directionSelect) return;
 
-    const columnIndex = Number(columnSelect.value);
+    const option = selectedSortOption(columnSelect);
+    const strategy = isStrategyOption(option) ? option.dataset.strategy : null;
+    const columnIndex = strategy ? null : Number(columnSelect.value);
     const direction = directionSelect.value === "desc" ? "desc" : "asc";
     const desktopBody = card.querySelector(".desktop-table tbody");
     const mobileTable = card.querySelector(".mobile-table");
 
+    updateRankingPresentation(card, columnSelect);
+
     if (desktopBody) {
       const sortedRows = sortElements(
         Array.from(desktopBody.querySelectorAll("tr[data-original-index]")),
-        (row) => row.children[columnIndex]?.textContent || "",
+        (row) => strategy
+          ? row.getAttribute(rankingAttributeName(strategy)) || ""
+          : row.children[columnIndex]?.textContent || "",
         direction,
       );
       sortedRows.forEach((row) => desktopBody.appendChild(row));
     }
 
     if (mobileTable) {
-      const option = columnSelect.options[columnSelect.selectedIndex];
       const columnName = option?.dataset.columnName || "";
       const escapedColumnName = window.CSS?.escape ? CSS.escape(columnName) : columnName.replace(/"/g, '\\"');
       const sortedRows = sortElements(
         Array.from(mobileTable.querySelectorAll(".mobile-row[data-original-index]")),
-        (row) => row.querySelector(`[data-column-name="${escapedColumnName}"] .mobile-cell-value, [data-column-name="${escapedColumnName}"] .mobile-detail-value`)?.textContent || "",
+        (row) => strategy
+          ? row.getAttribute(rankingAttributeName(strategy)) || ""
+          : row.querySelector(`[data-column-name="${escapedColumnName}"] .mobile-cell-value, [data-column-name="${escapedColumnName}"] .mobile-detail-value`)?.textContent || "",
         direction,
       );
       sortedRows.forEach((row) => mobileTable.appendChild(row));
@@ -242,8 +292,13 @@
       const directionSelect = controls.querySelector("[data-table-sort-direction]");
       if (!card || !columnSelect || !directionSelect) return;
 
-      columnSelect.addEventListener("change", () => sortTableCard(card));
+      columnSelect.addEventListener("change", () => {
+        directionSelect.value = isStrategyOption(selectedSortOption(columnSelect)) ? "asc" : "desc";
+        updateOrderLabels(columnSelect, directionSelect);
+        sortTableCard(card);
+      });
       directionSelect.addEventListener("change", () => sortTableCard(card));
+      updateOrderLabels(columnSelect, directionSelect);
       sortTableCard(card);
     });
   };

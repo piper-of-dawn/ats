@@ -360,6 +360,19 @@ body.dashboard .card {
   color: var(--label-soft);
 }
 
+.table-card-heading {
+  min-width: 220px;
+}
+
+.table-ranking-helper {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: var(--label-soft);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .nav-card-toolbar button,
 .controls select,
 .controls button {
@@ -861,6 +874,24 @@ body.dashboard .card {
   color: var(--value-strong);
   font-size: 12px;
   font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.momentum-rank-badge {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--value-soft);
+  font-weight: 600;
+}
+
+.momentum-rank-badge-top {
+  border-color: var(--badge-border);
+  background: var(--badge-bg);
+  color: var(--value-strong);
 }
 
 .table-pagination {

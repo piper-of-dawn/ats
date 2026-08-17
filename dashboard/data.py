@@ -1,3 +1,4 @@
+import math
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -43,10 +44,40 @@ _TABLE_TITLES = {
 }
 
 _COLUMN_LABELS = {
+    "momentum_rank": "Momentum Rank",
     "combined_score": "Combined Score",
     "analyst_rating": "Analyst Rating",
     "analyst_price_target_deviation": "Price Target Dev",
 }
+
+_MOMENTUM_RANK_COLUMN = "momentum_rank"
+_DEFAULT_MOMENTUM_STRATEGY = "momentum_first"
+_MOMENTUM_STRATEGIES = (
+    {
+        "key": "momentum_first",
+        "label": "Momentum First",
+        "description": "LTM quintile first; within each quintile: 50% LTM, 35% STM, 15% analyst rating.",
+        "weights": {"ltm": 0.50, "stm": 0.35, "analyst_rating": 0.15},
+    },
+    {
+        "key": "momentum_balance",
+        "label": "Momentum Balance",
+        "description": "LTM quintile first; within each quintile: 45% LTM, 45% STM, 10% analyst rating.",
+        "weights": {"ltm": 0.45, "stm": 0.45, "analyst_rating": 0.10},
+    },
+    {
+        "key": "analyst_confirmed",
+        "label": "Analyst Confirmed",
+        "description": "LTM quintile first; within each quintile: 45% LTM, 30% STM, 25% analyst rating.",
+        "weights": {"ltm": 0.45, "stm": 0.30, "analyst_rating": 0.25},
+    },
+    {
+        "key": "strict_momentum_sequence",
+        "label": "Strict Momentum Sequence",
+        "description": "Exact LTM first, then STM, analyst rating, and ticker.",
+        "weights": None,
+    },
+)
 
 def get_dashboard_context(table_name: str) -> dict:
     columns = get_dashboard_columns(table_name)
@@ -54,6 +85,16 @@ def get_dashboard_context(table_name: str) -> dict:
     selected_date = available_dates[0] if available_dates else None
     rows_df = fetch_rows_for_selected_date(table_name, selected_date, columns)
     columns = list(rows_df.columns)
+    rows = rows_df.to_dicts()
+    ranking_enabled = add_momentum_rankings(rows, columns)
+    if ranking_enabled:
+        rows.sort(
+            key=lambda row: (
+                row[_MOMENTUM_RANK_COLUMN] is None,
+                row[_MOMENTUM_RANK_COLUMN] or 0,
+            )
+        )
+        columns = _insert_momentum_rank_column(columns)
     mobile_primary_columns, mobile_detail_columns = split_mobile_columns(columns)
     return {
         "table_name": table_name,
@@ -65,12 +106,138 @@ def get_dashboard_context(table_name: str) -> dict:
             column: _COLUMN_LABELS.get(column, column.replace("_", " ").upper())
             for column in columns
         },
-        "rows": rows_df.to_dicts(),
+        "rows": rows,
         "mobile_primary_columns": mobile_primary_columns,
         "mobile_detail_columns": mobile_detail_columns,
         "as_of_date": selected_date,
         "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        "ranking_enabled": ranking_enabled,
+        "ranking_strategies": _MOMENTUM_STRATEGIES if ranking_enabled else (),
+        "default_ranking_strategy": _DEFAULT_MOMENTUM_STRATEGY,
     }
+
+
+def _find_column(columns: list[str], *candidates: str) -> str | None:
+    by_lower = {column.lower(): column for column in columns}
+    return next((by_lower[candidate] for candidate in candidates if candidate in by_lower), None)
+
+
+def _as_finite_float(value) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) else None
+
+
+def _percentile_ranks(values: dict[int, float]) -> dict[int, float]:
+    """Return ascending average-rank percentiles, so the largest value is best."""
+    if not values:
+        return {}
+
+    ordered = sorted(values.items(), key=lambda item: item[1])
+    percentiles: dict[int, float] = {}
+    cursor = 0
+    total = len(ordered)
+    while cursor < total:
+        group_end = cursor + 1
+        while group_end < total and ordered[group_end][1] == ordered[cursor][1]:
+            group_end += 1
+        average_rank = ((cursor + 1) + group_end) / 2
+        percentile = average_rank / total
+        for row_index, _ in ordered[cursor:group_end]:
+            percentiles[row_index] = percentile
+        cursor = group_end
+    return percentiles
+
+
+def _ticker_sort_value(row: dict, ticker_column: str | None) -> str:
+    if ticker_column is None:
+        return ""
+    value = row.get(ticker_column)
+    return "" if value is None else str(value).casefold()
+
+
+def add_momentum_rankings(rows: list[dict], columns: list[str]) -> bool:
+    """Attach presentation-only rank metadata when all required factor columns exist."""
+    ltm_column = _find_column(columns, "ltm")
+    stm_column = _find_column(columns, "stm")
+    analyst_column = _find_column(columns, "analyst_rating", "rating")
+    if not ltm_column or not stm_column or not analyst_column:
+        return False
+
+    ticker_column = _find_column(columns, "ticker", "yahoo_finance_ticker")
+    metrics: dict[int, dict[str, float]] = {}
+    for row_index, row in enumerate(rows):
+        values = {
+            "ltm": _as_finite_float(row.get(ltm_column)),
+            "stm": _as_finite_float(row.get(stm_column)),
+            "analyst_rating": _as_finite_float(row.get(analyst_column)),
+        }
+        row["_momentum_ranks"] = {
+            strategy["key"]: None for strategy in _MOMENTUM_STRATEGIES
+        }
+        row["_ltm_top_quintile"] = False
+        row[_MOMENTUM_RANK_COLUMN] = None
+        if all(value is not None for value in values.values()):
+            metrics[row_index] = {
+                metric: float(value) for metric, value in values.items()
+            }
+
+    percentiles = {
+        metric: _percentile_ranks(
+            {row_index: values[metric] for row_index, values in metrics.items()}
+        )
+        for metric in ("ltm", "stm", "analyst_rating")
+    }
+    quintiles = {
+        row_index: min(5, max(1, math.ceil(percentiles["ltm"][row_index] * 5)))
+        for row_index in metrics
+    }
+    for row_index, quintile in quintiles.items():
+        rows[row_index]["_ltm_top_quintile"] = quintile == 5
+
+    def exact_tiebreaker(row_index: int):
+        values = metrics[row_index]
+        return (
+            -values["ltm"],
+            -values["stm"],
+            -values["analyst_rating"],
+            _ticker_sort_value(rows[row_index], ticker_column),
+            row_index,
+        )
+
+    for strategy in _MOMENTUM_STRATEGIES:
+        if strategy["weights"] is None:
+            ordered_indices = sorted(metrics, key=exact_tiebreaker)
+        else:
+            weights = strategy["weights"]
+
+            def strategy_key(row_index: int):
+                score = sum(
+                    weights[metric] * percentiles[metric][row_index]
+                    for metric in weights
+                )
+                return (-quintiles[row_index], -score, *exact_tiebreaker(row_index))
+
+            ordered_indices = sorted(metrics, key=strategy_key)
+
+        for rank, row_index in enumerate(ordered_indices, start=1):
+            rows[row_index]["_momentum_ranks"][strategy["key"]] = rank
+
+    for row in rows:
+        row[_MOMENTUM_RANK_COLUMN] = row["_momentum_ranks"][_DEFAULT_MOMENTUM_STRATEGY]
+    return True
+
+
+def _insert_momentum_rank_column(columns: list[str]) -> list[str]:
+    ranked_columns = list(columns)
+    ticker_column = _find_column(ranked_columns, "ticker", "yahoo_finance_ticker")
+    insert_at = ranked_columns.index(ticker_column) + 1 if ticker_column else 0
+    ranked_columns.insert(insert_at, _MOMENTUM_RANK_COLUMN)
+    return ranked_columns
 
 
 def get_positions_treemap_context(group_by: str) -> dict:
@@ -276,9 +443,13 @@ def fetch_rows_for_selected_date(
 
 
 def split_mobile_columns(columns: list[str]) -> tuple[list[str], list[str]]:
+    identifiers = (
+        ("ticker", "momentum_rank", "yahoo_finance_ticker")
+        if "ticker" in columns
+        else ("yahoo_finance_ticker", "momentum_rank")
+    )
     primary_order = (
-        "ticker",
-        "yahoo_finance_ticker",
+        *identifiers,
         "combined_score",
         "ltm",
         "stm",
