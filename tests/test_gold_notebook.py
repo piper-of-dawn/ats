@@ -346,3 +346,84 @@ def test_robustness_grid_reports_only_predeclared_neighbor_values(backtest):
     assert len(result) == 1
     assert result.loc[0, "entry_z"] == 2.0
     assert result.loc[0, "transaction_cost_bps"] == 5.0
+
+
+def test_primary_selection_uses_statistical_gates_not_sharpe(backtest):
+    evidence = pd.DataFrame(
+        [
+            {
+                "candidate": "failed_high_sharpe",
+                "passes": False,
+                "adjusted_pvalue": 0.001,
+                "mean_convergence": 0.05,
+                "sharpe": 9.0,
+            },
+            {
+                "candidate": "valid_weaker_pnl",
+                "passes": True,
+                "adjusted_pvalue": 0.02,
+                "mean_convergence": 0.02,
+                "sharpe": 0.5,
+            },
+            {
+                "candidate": "valid_second",
+                "passes": True,
+                "adjusted_pvalue": 0.03,
+                "mean_convergence": 0.04,
+                "sharpe": 2.0,
+            },
+        ]
+    )
+
+    assert backtest["select_primary_candidate"](evidence) == "valid_weaker_pnl"
+    assert backtest["select_primary_candidate"](evidence.assign(passes=False)) is None
+
+
+def test_validation_gate_requires_significance_net_profit_and_trade_count(backtest):
+    evidence = pd.Series({"slope": 0.1, "bootstrap_pvalue": 0.08})
+    passing = backtest["BacktestResult"](
+        pd.DataFrame(), pd.DataFrame(), {"net_return": 0.02, "trade_count": 15}
+    )
+
+    assert backtest["passes_validation"](evidence, passing)
+    assert not backtest["passes_validation"](
+        evidence, backtest["BacktestResult"](pd.DataFrame(), pd.DataFrame(), {"net_return": -0.01, "trade_count": 30})
+    )
+    assert not backtest["passes_validation"](
+        pd.Series({"slope": 0.1, "bootstrap_pvalue": 0.11}), passing
+    )
+
+
+def test_final_classification_requires_test_and_robustness_gates(backtest):
+    evidence = pd.Series({"slope": 0.2, "bootstrap_pvalue": 0.04})
+    result = backtest["BacktestResult"](
+        pd.DataFrame(), pd.DataFrame(), {"net_return": 0.03, "trade_count": 22}
+    )
+    robust = pd.DataFrame({"net_return": [0.01, 0.02], "mean_convergence": [0.1, 0.2]})
+
+    assert backtest["classify_final_evidence"](evidence, result, robust) == "Robust statistical-arbitrage evidence"
+    assert backtest["classify_final_evidence"](
+        evidence, result, robust.assign(net_return=[0.01, -0.02])
+    ) == "Interesting but weak evidence"
+    assert backtest["classify_final_evidence"](None, None, None) == "No useful statistical arbitrage"
+
+
+def test_negative_summary_contains_all_eight_required_fields(backtest):
+    verdict = "No useful statistical arbitrage"
+
+    summary = backtest["render_research_summary"](
+        None, None, None, None, None, None, None, ["No candidate passed discovery"], verdict
+    )
+
+    for heading in (
+        "1. Best representation",
+        "2. Divergence definition",
+        "3. Convergence evidence",
+        "4. Trading rule",
+        "5. Untouched out-of-sample result",
+        "6. Robustness",
+        "7. Main failure modes",
+        "8. Verdict",
+    ):
+        assert heading in summary
+    assert verdict in summary
