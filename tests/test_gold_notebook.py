@@ -289,6 +289,23 @@ def test_positions_wait_one_session_do_not_stack_and_exit_on_reversion(backtest)
     pd.testing.assert_series_equal(positions.iloc[3], positions.iloc[4], check_names=False)
 
 
+def test_positions_are_scoped_and_liquidated_inside_requested_split(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=12)
+    zscore = pd.Series(0.0, index=dates)
+    zscore.iloc[4:10] = 2.5
+    candidate = _toy_candidate(backtest, zscore)
+    split_mask = pd.Series(False, index=dates)
+    split_mask.iloc[5:10] = True
+
+    positions = backtest["build_lagged_positions"](
+        candidate, backtest["CONFIG"], split_mask
+    )
+
+    assert positions.index.equals(dates[5:10])
+    assert positions.iloc[0].abs().sum() == pytest.approx(1.0)
+    assert positions.iloc[-1].abs().sum() == pytest.approx(0.0)
+
+
 def test_signal_cannot_affect_pnl_before_second_following_close(backtest):
     dates = pd.bdate_range("2024-01-01", periods=8)
     zscore = pd.Series([0.0, 0.0, 2.5, 2.5, 0.0, 0.0, 0.0, 0.0], index=dates)
@@ -463,6 +480,26 @@ def test_negative_summary_contains_all_eight_required_fields(backtest):
     ):
         assert heading in summary
     assert verdict in summary
+
+
+def test_summary_quantifies_robustness_neighborhood(backtest):
+    robustness = pd.DataFrame({"net_return": [-0.10, 0.02, -0.03]})
+
+    summary = backtest["render_research_summary"](
+        "candidate",
+        "zscore",
+        pd.Series(dtype=float),
+        None,
+        None,
+        None,
+        robustness,
+        [],
+        "Interesting but weak evidence",
+    )
+
+    assert "3 predeclared neighboring scenarios" in summary
+    assert "1 had positive net return" in summary
+    assert "net-return range [-0.1000, 0.0200]" in summary
 
 
 def test_split_evidence_uses_purged_nonoverlapping_events(backtest):
