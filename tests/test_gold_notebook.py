@@ -199,6 +199,42 @@ def test_overlap_control_bootstrap_and_holm_are_well_formed(research):
     assert adjusted.sort_values().is_monotonic_increasing
 
 
+def test_block_bootstrap_is_not_degenerate_when_requested_block_exceeds_sample(research):
+    result = research["moving_block_mean_test"](
+        pd.Series(np.linspace(-1.0, 1.0, 20)),
+        repetitions=200,
+        block_length=40,
+        seed=9,
+    )
+
+    assert result["ci_high"] - result["ci_low"] > 0.10
+
+
+def test_residual_convergence_uses_future_residuals_not_displacement_rolloff(research):
+    dates = pd.bdate_range("2024-01-01", periods=8)
+    displacement = pd.Series([0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    zscore = pd.Series([0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    candidate = research["Candidate"](
+        "residual-toy",
+        "factor_residual",
+        displacement,
+        zscore,
+        pd.DataFrame({"A": 0.5, "B": -0.5}, index=dates),
+        {
+            "stationarity_ok": True,
+            "stable_weights": True,
+            "residual_return": pd.Series(0.0, index=dates),
+        },
+    )
+    bounds = research["SplitBoundaries"](dates[5], dates[6], dates[-1])
+
+    evidence = research["purged_forward_convergence"](
+        candidate, (1,), "discovery", bounds
+    )
+
+    assert evidence.loc[dates[2], "convergence"] == pytest.approx(0.0)
+
+
 def test_discovery_evidence_reports_multiplicity_adjusted_gate(research):
     from dataclasses import replace
 
@@ -427,3 +463,27 @@ def test_negative_summary_contains_all_eight_required_fields(backtest):
     ):
         assert heading in summary
     assert verdict in summary
+
+
+def test_split_evidence_uses_purged_nonoverlapping_events(backtest):
+    from dataclasses import replace
+
+    dates = pd.bdate_range("2020-01-01", periods=180)
+    spread = pd.Series(np.sin(np.arange(180) / 3), index=dates)
+    candidate = backtest["Candidate"](
+        "toy",
+        "cointegration",
+        spread,
+        spread * 3.0,
+        pd.DataFrame({"A": 0.5, "B": -0.5}, index=dates),
+        {"stationarity_ok": True, "stable_weights": True},
+    )
+    bounds = backtest["SplitBoundaries"](dates[99], dates[139], dates[-1])
+    config = replace(backtest["CONFIG"], bootstrap_repetitions=50)
+
+    evidence = backtest["split_evidence"](
+        candidate, bounds, "validation", 5, config
+    )
+
+    assert {"slope", "bootstrap_pvalue", "event_count", "mean_convergence"}.issubset(evidence.index)
+    assert evidence["event_count"] >= 1
