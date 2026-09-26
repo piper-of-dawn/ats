@@ -53,6 +53,11 @@ def research():
     return load_notebook_namespace("research-core", "research-inference")
 
 
+@pytest.fixture
+def backtest():
+    return load_notebook_namespace("research-core", "research-inference", "research-backtest")
+
+
 def test_price_validation_rejects_nonpositive_and_does_not_fill_missing_returns(core):
     dates = pd.date_range("2025-01-01", periods=5, freq="D")
     raw = pd.DataFrame({"GLD": [100.0, 0.0, 102.0, np.nan, 104.0]}, index=dates)
@@ -216,3 +221,128 @@ def test_discovery_evidence_reports_multiplicity_adjusted_gate(research):
     assert {"raw_pvalue", "adjusted_pvalue", "passes", "rejection_reason"}.issubset(summary.columns)
     assert (summary["adjusted_pvalue"] >= summary["raw_pvalue"]).all()
     assert not buckets.empty
+
+
+def _toy_candidate(namespace, zscore):
+    dates = zscore.index
+    return namespace["Candidate"](
+        "toy",
+        "factor_residual",
+        zscore.rename("spread"),
+        zscore,
+        pd.DataFrame({"LONG": 0.5, "SHORT": -0.5}, index=dates),
+        {"stationarity_ok": True, "stable_weights": True},
+    )
+
+
+def test_positions_wait_one_session_do_not_stack_and_exit_on_reversion(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=12)
+    zscore = pd.Series(0.0, index=dates)
+    zscore.iloc[2:5] = [2.2, 2.8, 0.4]
+    candidate = _toy_candidate(backtest, zscore)
+    split_mask = pd.Series(True, index=dates)
+
+    positions = backtest["build_lagged_positions"](
+        candidate, backtest["CONFIG"], split_mask
+    )
+
+    assert positions.iloc[:3].abs().sum(axis=1).eq(0.0).all()
+    assert positions.iloc[3].abs().sum() == pytest.approx(1.0)
+    assert positions.iloc[4].abs().sum() == pytest.approx(1.0)
+    assert positions.iloc[5].abs().sum() == pytest.approx(0.0)
+    pd.testing.assert_series_equal(positions.iloc[3], positions.iloc[4], check_names=False)
+
+
+def test_signal_cannot_affect_pnl_before_second_following_close(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=8)
+    zscore = pd.Series([0.0, 0.0, 2.5, 2.5, 0.0, 0.0, 0.0, 0.0], index=dates)
+    candidate = _toy_candidate(backtest, zscore)
+    positions = backtest["build_lagged_positions"](
+        candidate, backtest["CONFIG"], pd.Series(True, index=dates)
+    )
+    returns = pd.DataFrame({"LONG": 0.01, "SHORT": -0.01}, index=dates)
+
+    result = backtest["run_backtest"](positions, returns, backtest["CONFIG"])
+
+    assert result.daily.loc[: dates[3], "gross_return"].eq(0.0).all()
+    assert result.daily.loc[dates[4], "gross_return"] != 0.0
+
+
+def test_turnover_transaction_cost_and_short_borrow_are_hand_calculated(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=3)
+    positions = pd.DataFrame(
+        {"LONG": [0.0, 0.5, 0.0], "SHORT": [0.0, -0.5, 0.0]}, index=dates
+    )
+    returns = pd.DataFrame(0.0, index=dates, columns=positions.columns)
+
+    result = backtest["run_backtest"](positions, returns, backtest["CONFIG"])
+
+    assert result.daily["turnover"].tolist() == pytest.approx([0.0, 1.0, 1.0])
+    assert result.daily["transaction_cost"].sum() == pytest.approx(0.001)
+    assert result.daily["borrow_cost"].sum() == pytest.approx(0.5 * 0.02 / 252)
+    assert result.daily["net_return"].sum() == pytest.approx(
+        -0.001 - 0.5 * 0.02 / 252
+    )
+
+
+def test_performance_metrics_match_toy_trade_ledger(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=3)
+    daily = pd.DataFrame(
+        {
+            "gross_return": [0.01, -0.02, 0.03],
+            "transaction_cost": [0.0, 0.0, 0.0],
+            "borrow_cost": [0.0, 0.0, 0.0],
+            "net_return": [0.01, -0.02, 0.03],
+            "turnover": [0.0, 0.0, 0.0],
+        },
+        index=dates,
+    )
+    trades = pd.DataFrame({"holding_days": [2, 4], "net_pnl": [0.10, -0.05]})
+
+    metrics = backtest["performance_metrics"](daily, trades)
+
+    assert metrics["trade_count"] == 2
+    assert metrics["average_holding_days"] == pytest.approx(3.0)
+    assert metrics["hit_rate"] == pytest.approx(0.5)
+    assert metrics["average_trade_pnl"] == pytest.approx(0.025)
+    assert metrics["median_trade_pnl"] == pytest.approx(0.025)
+    assert metrics["worst_trade"] == pytest.approx(-0.05)
+    assert metrics["annualized_return"] == pytest.approx(0.02 / 3 * 252)
+
+
+def test_volatility_regime_labels_use_only_prior_spy_returns(backtest):
+    dates = pd.bdate_range("2024-01-01", periods=20)
+    spy = pd.Series(np.linspace(-0.02, 0.02, 20), index=dates)
+    changed = spy.copy()
+    changed.iloc[15:] = 1.0
+
+    labels = backtest["lagged_volatility_regime"](spy, lookback=5)
+    changed_labels = backtest["lagged_volatility_regime"](changed, lookback=5)
+
+    pd.testing.assert_series_equal(labels.loc[: dates[15]], changed_labels.loc[: dates[15]])
+
+
+def test_robustness_grid_reports_only_predeclared_neighbor_values(backtest):
+    from dataclasses import replace
+
+    dates = pd.bdate_range("2024-01-01", periods=30)
+    zscore = pd.Series(np.tile([0.0, 2.2, 2.3, 0.4, 0.0], 6), index=dates)
+    candidate = _toy_candidate(backtest, zscore)
+    returns = pd.DataFrame({"LONG": 0.001, "SHORT": -0.001}, index=dates)
+    bounds = backtest["SplitBoundaries"](dates[9], dates[19], dates[-1])
+    config = replace(
+        backtest["CONFIG"],
+        robustness_entry_z=(2.0,),
+        robustness_exit_z=(0.5,),
+        robustness_holding_days=(20,),
+        robustness_cost_bps=(5.0,),
+        robustness_borrow=(0.02,),
+    )
+
+    result = backtest["robustness_grid"](
+        candidate, returns, bounds, "test", config
+    )
+
+    assert len(result) == 1
+    assert result.loc[0, "entry_z"] == 2.0
+    assert result.loc[0, "transaction_cost_bps"] == 5.0
