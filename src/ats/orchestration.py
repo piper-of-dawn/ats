@@ -1,17 +1,26 @@
 import argparse
+import logging
+import math
 import re
 from datetime import date
 
 import polars as pl
 from dagster import DynamicOut, DynamicOutput, job, multiprocess_executor, op
 
-from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
+from ats.dataIO.supabase_integration import (
+    add_columns_if_missing,
+    batch_insert_polars_df,
+    fetch_table,
+    get_table_columns,
+)
 from ats.fundamentals.combined_score import compute_combined_score
 from ats.fundamentals.analyst_metrics import calculate_analyst_metrics
 from ats.momentum import calculate_momentum
 from ats.ticker import EquityTicker
 
 LOG_CONFIG = {"loggers": {"console": {"config": {"log_level": "INFO"}}}}
+SHORT_INTEREST_PCT_OF_FLOAT = "short_interest_pct_of_float"
+logger = logging.getLogger(__name__)
 
 
 def source_ticker_symbols_from_database(source_table: str, limit: int | None = None):
@@ -28,6 +37,24 @@ def optional_float(value):
     return None if value is None else float(value)
 
 
+def yahoo_short_interest_pct_of_float(equity_ticker: EquityTicker) -> float | None:
+    """Return Yahoo's reported short-to-float ratio on a 0–100 scale."""
+    try:
+        info = equity_ticker.get_info()
+    except Exception:
+        logger.warning("Yahoo short interest unavailable for %s", equity_ticker.ticker)
+        return None
+    ratio = info.get("shortPercentOfFloat") if isinstance(info, dict) else None
+    if ratio is None or isinstance(ratio, bool):
+        return None
+    try:
+        ratio = float(ratio)
+    except (TypeError, ValueError):
+        return None
+    percentage = ratio * 100
+    return percentage if math.isfinite(percentage) and percentage >= 0 else None
+
+
 def empty_equity_factor_metric_row(equity_ticker_symbol: str):
     return {
         "ticker": equity_ticker_symbol,
@@ -36,6 +63,7 @@ def empty_equity_factor_metric_row(equity_ticker_symbol: str):
         "beta": None,
         "cbs": None,
         "analyst_price_target_deviation": None,
+        SHORT_INTEREST_PCT_OF_FLOAT: None,
     }
 
 
@@ -54,6 +82,7 @@ def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: st
         "analyst_price_target_deviation": optional_float(
             analyst.price_target_deviation
         ),
+        SHORT_INTEREST_PCT_OF_FLOAT: yahoo_short_interest_pct_of_float(equity_ticker),
     }
 
 
@@ -87,6 +116,11 @@ def build_factor_matrix(equity_factor_metric_rows: list[dict]):
                 "combined_score",
             ).round(2)
         )
+        .with_columns(
+            pl.col(SHORT_INTEREST_PCT_OF_FLOAT)
+            .cast(pl.Float64, strict=False)
+            .round(2)
+        )
         .select(
             "ticker",
             "ltm",
@@ -95,6 +129,7 @@ def build_factor_matrix(equity_factor_metric_rows: list[dict]):
             "as_of_date",
             "analyst_price_target_deviation",
             "analyst_rating",
+            SHORT_INTEREST_PCT_OF_FLOAT,
             "combined_score",
         )
         .sort("ticker")
@@ -141,6 +176,8 @@ def compute_equity_factor_metrics(context, equity_ticker_symbol: str):
 def write_factor_metrics_to_database(context, equity_factor_metric_rows: list[dict]):
     factor_matrix = build_factor_matrix(equity_factor_metric_rows)
     target_table_name = context.op_config["target_table"]
+    if SHORT_INTEREST_PCT_OF_FLOAT not in get_table_columns(target_table_name):
+        add_columns_if_missing(target_table_name, {SHORT_INTEREST_PCT_OF_FLOAT: "double precision"})
     batch_insert_polars_df(
         factor_matrix,
         factor_matrix.columns,

@@ -148,3 +148,9 @@ Float percentages stay null without a compatible float date. Set
 a future float is never used for an earlier short-interest report. Date matching
 does not prove that a historical observation was publicly available on that date.
 Short-sale volume measures trading activity, not the buildup in outstanding shorts.
+
+The daily factor pipeline writes `short_interest_pct_of_float` to each metrics
+table as a percentage on a 0–100 scale. It uses Yahoo Finance's
+`shortPercentOfFloat` snapshot multiplied by 100, independent of the Massive
+short-interest and float analysis above. Missing or invalid Yahoo values are
+stored as null; the dashboard displays available values as percentages.

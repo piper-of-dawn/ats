@@ -80,6 +80,7 @@ def test_daily_job_writes_momentum_for_one_ticker(yahoo_history, monkeypatch):
         "get_analyst_price_targets",
         lambda self: {"current": 110.0, "low": 80.0, "median": 100.0, "high": 130.0},
     )
+    monkeypatch.setattr(YfTicker, "get_info", lambda self: {"shortPercentOfFloat": 0.1234})
     monkeypatch.setattr(
         "ats.orchestration.fetch_table",
         lambda table: pl.DataFrame({"yahoo_finance_ticker": ["E2E"]}),
@@ -89,6 +90,8 @@ def test_daily_job_writes_momentum_for_one_ticker(yahoo_history, monkeypatch):
         "ats.orchestration.batch_insert_polars_df",
         lambda *args, **kwargs: writes.append((args, kwargs)),
     )
+    monkeypatch.setattr("ats.orchestration.add_columns_if_missing", lambda *args: None)
+    monkeypatch.setattr("ats.orchestration.get_table_columns", lambda table: [])
 
     run = factor_metrics_job.execute_in_process(run_config={
         "ops": {

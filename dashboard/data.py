@@ -30,6 +30,7 @@ _DASHBOARD_PRIORITY_COLUMNS = (
     "analyst_rating",
     "rating",
     "analyst_price_target_deviation",
+    "short_interest_pct_of_float",
     "representative_index_ticker",
 )
 
@@ -48,6 +49,7 @@ _COLUMN_LABELS = {
     "combined_score": "Combined Score",
     "analyst_rating": "Analyst Rating",
     "analyst_price_target_deviation": "Price Target Dev",
+    "short_interest_pct_of_float": "Short % of Float",
 }
 
 _MOMENTUM_RANK_COLUMN = "momentum_rank"

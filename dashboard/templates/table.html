@@ -59,6 +59,8 @@
           <td class="{% if 'status' in col.lower() %}status{% endif %}" data-column-name="{{ col }}">
             {% if col == "momentum_rank" %}
             <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% elif col == "short_interest_pct_of_float" %}
+            {{ "%.2f%%"|format(row[col]) if row.get(col) is not none else "" }}
             {% else %}
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
             {% endif %}
@@ -79,6 +81,8 @@
           <span class="mobile-cell-value {% if 'status' in col.lower() %}status{% endif %}">
             {% if col == "momentum_rank" %}
             <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% elif col == "short_interest_pct_of_float" %}
+            {{ "%.2f%%"|format(row[col]) if row.get(col) is not none else "" }}
             {% else %}
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
             {% endif %}
@@ -94,6 +98,8 @@
           <span class="mobile-detail-value {% if 'status' in col.lower() %}status{% endif %}">
             {% if col == "momentum_rank" %}
             <span class="momentum-rank-badge{% if row.get('_ltm_top_quintile') %} momentum-rank-badge-top{% endif %}" data-momentum-rank-value>{{ row.get(col) if row.get(col) is not none else "—" }}</span>
+            {% elif col == "short_interest_pct_of_float" %}
+            {{ "%.2f%%"|format(row[col]) if row.get(col) is not none else "" }}
             {% else %}
             {{ row.get(col, "") if row.get(col, "") is not none else "" }}
             {% endif %}
