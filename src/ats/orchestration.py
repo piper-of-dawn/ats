@@ -7,6 +7,8 @@ from dagster import DynamicOut, DynamicOutput, job, multiprocess_executor, op
 
 from ats.dataIO.supabase_integration import batch_insert_polars_df, fetch_table
 from ats.fundamentals.combined_score import compute_combined_score
+from ats.fundamentals.analyst_metrics import calculate_analyst_metrics
+from ats.momentum import calculate_momentum
 from ats.ticker import EquityTicker
 
 LOG_CONFIG = {"loggers": {"console": {"config": {"log_level": "INFO"}}}}
@@ -38,21 +40,19 @@ def empty_equity_factor_metric_row(equity_ticker_symbol: str):
 
 
 def compute_equity_factor_metric_row(equity_ticker_symbol: str, market_index: str):
-    equity_ticker = (
-        EquityTicker(equity_ticker_symbol, EquityTicker(market_index))
-        .get_long_term_momentum_signal()
-        .get_short_term_momentum_signal()
-        .getCombinedRating()
-        .getAnalystPriceTargetDeviation()
-    )
+    market_ticker = EquityTicker(market_index).fetch_price_data()
+    equity_ticker = EquityTicker(equity_ticker_symbol, market_ticker)
+    equity_ticker.fetch_price_data().fetch_analyst_data()
+    momentum = calculate_momentum(equity_ticker)
+    analyst = calculate_analyst_metrics(equity_ticker)
     return {
         "ticker": equity_ticker_symbol,
-        "ltm": float(equity_ticker.ltm),
-        "stm": float(equity_ticker.stm),
-        "beta": float(equity_ticker.beta),
-        "cbs": float(equity_ticker.combined_rating),
+        "ltm": momentum.ltm,
+        "stm": momentum.stm,
+        "beta": momentum.beta,
+        "cbs": analyst.combined_rating,
         "analyst_price_target_deviation": optional_float(
-            equity_ticker.analyst_price_target_deviation
+            analyst.price_target_deviation
         ),
     }
 

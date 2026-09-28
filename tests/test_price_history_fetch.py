@@ -1,6 +1,7 @@
 from datetime import date
 from datetime import timedelta
 import math
+import os
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,8 @@ import polars as pl
 import pytest
 
 from ats.ticker import EquityTicker, YfTicker
+from ats.momentum import MomentumConfig, calculate_momentum
+from ats.fundamentals.analyst_metrics import calculate_analyst_metrics
 
 
 def test_equity_ticker_uses_superclass_history_for_price_data(monkeypatch):
@@ -25,6 +28,8 @@ def test_equity_ticker_uses_superclass_history_for_price_data(monkeypatch):
     equity_ticker = EquityTicker("AAPL")
 
     assert captured == {}
+    assert equity_ticker.price_data is None
+    equity_ticker.fetch_price_data()
     assert equity_ticker.price_data.to_dicts() == [
         {"date": date(2000, 1, 3), "close": 100.0, "ticker": "AAPL"}
     ]
@@ -46,6 +51,8 @@ def test_equity_ticker_fetch_price_data_can_override_period(monkeypatch):
 
     equity_ticker = EquityTicker("AAPL")
 
+    assert equity_ticker.price_data is None
+    equity_ticker.fetch_price_data()
     assert equity_ticker.price_data["close"].to_list() == [100.0]
 
     equity_ticker.fetch_price_data(period="5y")
@@ -97,12 +104,50 @@ def test_momentum_lookback_window_controls_beta_and_idiosyncratic_returns():
         ),
     )
 
-    ticker.get_short_term_momentum_signal(winsorize=False, lookback_window=3)
+    result = calculate_momentum(
+        ticker, config=MomentumConfig(winsorize=False, lookback_window=3)
+    )
 
-    assert ticker.price_data.height == 3
-    assert ticker.price_data["date"].to_list() == dates[-3:]
-    assert ticker.beta == pytest.approx(2.0)
-    assert ticker.price_data["idiosyncratic_returns"].to_list() == pytest.approx([0.0, 0.0, 0.0])
+    assert ticker.price_data.height == 7
+    assert result.prepared_data.height == 3
+    assert result.prepared_data["date"].to_list() == dates[-3:]
+    assert result.beta == pytest.approx(2.0)
+    assert result.prepared_data["idiosyncratic_returns"].to_list() == pytest.approx([0.0, 0.0, 0.0])
+
+
+def test_momentum_rebuilds_returns_after_price_change_and_ignores_old_columns():
+    dates = [date(2024, 1, day) for day in range(1, 8)]
+
+    def prices(changes, symbol):
+        closes = [100.0]
+        for change in changes:
+            closes.append(closes[-1] * np.exp(change))
+        return pl.DataFrame({"date": dates, "close": closes, "ticker": [symbol] * 7})
+
+    market = EquityTicker("^GSPC", price_data=prices([.01, .02, -.01, .03, -.02, .04], "^GSPC"))
+    ticker = EquityTicker("AAPL", market, prices([.03, .01, -.02, .05, -.01, .02], "AAPL"))
+    original = ticker.price_data.clone()
+    first = calculate_momentum(ticker)
+    raw = calculate_momentum(ticker, config=MomentumConfig(use_idiosyncratic_returns=False))
+    assert raw.beta is None
+    assert raw.prepared_data["idiosyncratic_returns"].to_list() == pytest.approx(
+        raw.prepared_data["log_return"].to_list()
+    )
+    assert ticker.price_data.equals(original)
+    assert market.price_data.columns == ["date", "close", "ticker"]
+
+    ticker.price_data = prices([-.02, .04, .01, -.01, .06, -.03], "AAPL").with_columns(
+        pl.lit(999.0).alias("idiosyncratic_returns")
+    )
+    changed = calculate_momentum(ticker)
+    assert changed.beta != pytest.approx(first.beta)
+    assert changed.prepared_data["idiosyncratic_returns"].max() < 999
+    assert calculate_momentum(ticker).stm == pytest.approx(changed.stm)
+
+
+def test_momentum_requires_explicitly_loaded_prices():
+    with pytest.raises(ValueError, match="Load price data"):
+        calculate_momentum(EquityTicker("AAPL"))
 
 
 def test_equity_ticker_get_combined_rating_uses_cbs(monkeypatch):
@@ -111,37 +156,42 @@ def test_equity_ticker_get_combined_rating_uses_cbs(monkeypatch):
         {"strongBuy": 1, "buy": 2, "hold": 1, "sell": 0, "strongSell": 0},
     ]
     monkeypatch.setattr(EquityTicker, "get_recommendations_summary", lambda self: recommendations)
+    monkeypatch.setattr(EquityTicker, "get_analyst_price_targets", lambda self: {})
 
-    equity_ticker = EquityTicker("AAPL").getCombinedRating()
+    equity_ticker = EquityTicker("AAPL").fetch_analyst_data()
+    metrics = calculate_analyst_metrics(equity_ticker)
 
-    assert isinstance(equity_ticker.combined_rating, float)
-    assert equity_ticker.combined_rating > 0
+    assert isinstance(metrics.combined_rating, float)
+    assert metrics.combined_rating > 0
 
 
 def test_equity_ticker_get_analyst_price_target_deviation(monkeypatch):
     price_targets = {"current": 90.0, "low": 80.0, "median": 100.0, "high": 130.0}
     monkeypatch.setattr(EquityTicker, "get_analyst_price_targets", lambda self: price_targets)
 
-    equity_ticker = EquityTicker("AAPL").getAnalystPriceTargetDeviation()
+    monkeypatch.setattr(EquityTicker, "get_recommendations_summary", lambda self: [
+        {"strongBuy": 1, "buy": 1, "hold": 1, "sell": 0, "strongSell": 0}
+    ])
+    equity_ticker = EquityTicker("AAPL").fetch_analyst_data()
+    metrics = calculate_analyst_metrics(equity_ticker)
 
-    assert equity_ticker.analyst_price_target_deviation == -0.33
+    assert metrics.price_target_deviation == -0.33
 
 
 def test_aapl_momentum_calculations_use_fetched_price_data():
-    market_ticker = EquityTicker("^GSPC")
-    equity_ticker = EquityTicker("AAPL", market_ticker)
+    if os.getenv("RUN_LIVE_YAHOO_TESTS") != "1":
+        pytest.skip("Set RUN_LIVE_YAHOO_TESTS=1 to run the live Yahoo smoke test")
+    market_ticker = EquityTicker("^GSPC").fetch_price_data()
+    equity_ticker = EquityTicker("AAPL", market_ticker).fetch_price_data()
 
     if equity_ticker.price_data.height < 120 or market_ticker.price_data.height < 120:
         pytest.skip("Yahoo Finance returned too little AAPL history for momentum smoke test")
 
-    equity_ticker = (
-        equity_ticker.get_long_term_momentum_signal()
-        .get_short_term_momentum_signal()
-    )
+    metrics = calculate_momentum(equity_ticker)
 
     assert {"date", "close", "ticker", "log_return", "mkt_log_return", "idiosyncratic_returns"}.issubset(
-        equity_ticker.price_data.schema
+        metrics.prepared_data.schema
     )
-    assert math.isfinite(equity_ticker.beta)
-    assert math.isfinite(equity_ticker.ltm)
-    assert math.isfinite(equity_ticker.stm)
+    assert math.isfinite(metrics.beta)
+    assert math.isfinite(metrics.ltm)
+    assert math.isfinite(metrics.stm)

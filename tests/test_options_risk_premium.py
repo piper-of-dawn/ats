@@ -105,31 +105,6 @@ def test_latest_close_from_bars_uses_latest_timestamp():
     ) == 1.30
 
 
-def test_rate_limited_waits_after_configured_number_of_calls():
-    clock = {"now": 0.0}
-    sleeps = []
-
-    def now():
-        return clock["now"]
-
-    def sleep(seconds):
-        sleeps.append(seconds)
-        clock["now"] += seconds
-
-    calls = []
-
-    @orp.rate_limited(calls_per_minute=2, time_func=now, sleep_func=sleep)
-    def record(value):
-        calls.append(value)
-        return value
-
-    assert record(1) == 1
-    assert record(2) == 2
-    assert record(3) == 3
-    assert sleeps == [60.0]
-    assert calls == [1, 2, 3]
-
-
 def test_calculate_option_risk_premium_uses_discovered_expiry_and_atm_average(monkeypatch):
     contracts = [
         {

@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-import json
 import math
 import os
 import sys
-import time
-from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from functools import wraps
 from typing import Any
-from urllib.error import HTTPError
-from urllib.parse import quote, urlencode
-from urllib.request import Request, urlopen
+from urllib.parse import quote
 
 import numpy as np
 from yfinance import Ticker
 
-API_BASE_URL = os.environ.get("POLYGON_API_BASE_URL", "https://api.polygon.io")
+from ats.dataIO import massive
+
+# Compatibility name; all network access and pacing live in massive.
+http_get_json = massive.request_json
 TRADING_DAYS_PER_YEAR = 252
 DEFAULT_TICKERS = ("AMAT", "SNDK", "GLW", "CVS")
 
@@ -38,42 +35,6 @@ class OptionRiskPremium:
     implied_vol: float
     realized_vol: float
     implied_risk_premium: float
-
-
-def rate_limited(
-    calls_per_minute: int = 5,
-    *,
-    time_func: Callable[[], float] = time.monotonic,
-    sleep_func: Callable[[float], None] = time.sleep,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    if calls_per_minute <= 0:
-        raise ValueError("calls_per_minute must be positive")
-
-    window_seconds = 60.0
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        call_times: deque[float] = deque()
-
-        @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            now = time_func()
-            while call_times and now - call_times[0] >= window_seconds:
-                call_times.popleft()
-
-            if len(call_times) >= calls_per_minute:
-                sleep_for = window_seconds - (now - call_times[0])
-                if sleep_for > 0:
-                    sleep_func(sleep_for)
-                now = time_func()
-                while call_times and now - call_times[0] >= window_seconds:
-                    call_times.popleft()
-
-            call_times.append(now)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def construct_option_ticker(
@@ -274,22 +235,6 @@ def get_api_key() -> str:
     return os.environ["POLYGON_IO"]
 
 
-@rate_limited(calls_per_minute=5)
-def http_get_json(url: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    query = _clean_params(params or {})
-    request_url = f"{url}?{urlencode(query)}" if query else url
-    request = Request(request_url, headers={"Accept": "application/json"})
-    try:
-        with urlopen(request, timeout=30) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {exc.code} from {url}: {body}") from exc
-    if payload.get("status") not in {None, "OK", "DELAYED"}:
-        raise RuntimeError(f"API returned status {payload.get('status')}: {payload}")
-    return payload
-
-
 def fetch_current_price(ticker: str) -> float:
     yf_ticker = Ticker(ticker)
     fast_info = yf_ticker.fast_info
@@ -316,8 +261,8 @@ def fetch_candidate_contracts(
     *,
     api_key: str | None = None,
 ) -> list[dict[str, Any]]:
-    payload = http_get_json(
-        f"{API_BASE_URL}/v3/reference/options/contracts",
+    return massive.fetch_records(
+        "/v3/reference/options/contracts",
         {
             "underlying_ticker": ticker.upper(),
             "expired": "false",
@@ -325,10 +270,9 @@ def fetch_candidate_contracts(
             "sort": "expiration_date",
             "order": "asc",
             "limit": 1000,
-            "apiKey": api_key or get_api_key(),
         },
+        api_key=api_key,
     )
-    return list(payload.get("results") or [])
 
 
 def fetch_option_daily_bars(
@@ -338,19 +282,18 @@ def fetch_option_daily_bars(
     *,
     api_key: str | None = None,
 ) -> list[dict[str, Any]]:
-    payload = http_get_json(
+    return massive.fetch_records(
         (
-            f"{API_BASE_URL}/v2/aggs/ticker/{quote(option_ticker, safe='')}"
+            f"/v2/aggs/ticker/{quote(option_ticker, safe='')}"
             f"/range/1/day/{start_date.isoformat()}/{end_date.isoformat()}"
         ),
         {
             "adjusted": "true",
             "sort": "asc",
             "limit": 5000,
-            "apiKey": api_key or get_api_key(),
         },
+        api_key=api_key,
     )
-    return list(payload.get("results") or [])
 
 
 def latest_close_from_bars(bars: Sequence[Mapping[str, Any]]) -> float:
@@ -559,14 +502,6 @@ def _option_type_code(contract_type: str) -> str:
 
 def _normal_cdf(value: float) -> float:
     return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
-
-
-def _clean_params(params: Mapping[str, Any]) -> dict[str, str]:
-    return {
-        key: str(value).lower() if isinstance(value, bool) else str(value)
-        for key, value in params.items()
-        if value is not None
-    }
 
 
 def _details(row: Mapping[str, Any]) -> Mapping[str, Any]:

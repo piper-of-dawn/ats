@@ -1,42 +1,39 @@
-import polars as pl
-from ats.fundamentals.analyst_price_targets import median_centered_score
-from ats.fundamentals.analyst_ratings import agreement, direction, sample_confidence, stability
-from ats.helpers import compute_ema_signal, ema_volatility
-from yfinance import Ticker as YfTicker
-import numpy as np
-def log_returns(df: pl.DataFrame) -> pl.DataFrame:
-    return df.sort("date").with_columns((pl.col("close") / pl.col("close").shift(1)).log().alias("log_return"))
+"""Source data for one equity and its optional market index."""
 
-def winsorize_log_returns_inplace(df: pl.DataFrame, return_col="log_return", threshold=5.0) -> pl.DataFrame:
-    if return_col not in df.columns:
-        return df
-    scale = df.select(pl.col(return_col).abs().median()).item()
-    if not scale:
-        return df
-    cap = float(threshold) * float(scale)
-    c = pl.col(return_col)
-    return df.with_columns(pl.when(c.abs() > cap).then(c.sign() * cap).otherwise(c).alias(return_col))
+from datetime import date, datetime, timedelta, timezone
+
+import polars as pl
+from yfinance import Ticker as YfTicker
+
+from ats.dataIO import massive
+
 
 class EquityTicker(YfTicker):
     def __init__(
         self,
         ticker: str,
-        mkt_index: "EquityTicker|None" = None,
+        mkt_index: "EquityTicker | None" = None,
         price_data: pl.DataFrame | None = None,
     ):
         super().__init__(ticker)
-        self.ticker, self.mkt_index = ticker, mkt_index
+        self.ticker = ticker
+        self.mkt_index = mkt_index
         self._price_data = price_data
-        self._log_returns_winsorized = False
+        self.short_interest = None
+        self.short_volume = None
+        self.float_data = None
+        self.news_sentiment = None
+        self.news_coverage: tuple[date, date] | None = None
+        self.loaded_recommendations = None
+        self.loaded_price_targets = None
 
     @property
-    def price_data(self) -> pl.DataFrame:
-        if self._price_data is None:
-            self.fetch_price_data()
+    def price_data(self) -> pl.DataFrame | None:
+        """Loaded prices; reading this property never starts a network request."""
         return self._price_data
 
     @price_data.setter
-    def price_data(self, value: pl.DataFrame | None):
+    def price_data(self, value: pl.DataFrame | None) -> None:
         self._price_data = value
 
     def fetch_price_data(
@@ -47,206 +44,82 @@ class EquityTicker(YfTicker):
     ) -> "EquityTicker":
         if all_available_price_history:
             period = "max"
-        self._price_data = self._fetch_price_data_from_yahoo(period=period)
-        self._log_returns_winsorized = False
+        self.price_data = self._fetch_price_data_from_yahoo(period=period)
         return self
 
     def _fetch_price_data_from_yahoo(self, period: str = "1y") -> pl.DataFrame:
-        yahoo_history = super().history(
-            period=period,
-            auto_adjust=False,
-            actions=False,
-        )
+        yahoo_history = super().history(period=period, auto_adjust=False, actions=False)
         if yahoo_history is None or yahoo_history.empty:
             return pl.DataFrame()
 
-        yahoo_history = yahoo_history.reset_index()
-        price_history = pl.from_pandas(yahoo_history)
+        price_history = pl.from_pandas(yahoo_history.reset_index())
         if price_history.is_empty():
             return pl.DataFrame()
-
         date_column = next(
             (
-                column
-                for column in price_history.columns
+                column for column in price_history.columns
                 if str(column).lower() in {"date", "datetime"}
                 or "date" in str(column).lower()
             ),
             price_history.columns[0],
         )
         close_column = next(
-            (
-                column
-                for column in price_history.columns
-                if str(column).lower() == "adj close"
-            ),
+            (column for column in price_history.columns if str(column).lower() == "adj close"),
             None,
         )
         if close_column is None:
             close_column = next(
-                (
-                    column
-                    for column in price_history.columns
-                    if str(column).lower() == "close"
-                ),
+                (column for column in price_history.columns if str(column).lower() == "close"),
                 None,
             )
         if close_column is None:
             return pl.DataFrame()
-
         return price_history.select(
             pl.col(date_column).cast(pl.Date, strict=False).alias("date"),
             pl.col(close_column).cast(pl.Float64, strict=False).alias("close"),
             pl.lit(self.ticker).cast(pl.String).alias("ticker"),
         )
 
-    def _require_data(self, who="ticker"):
-        if self.price_data is None or self.price_data.is_empty():
-            raise ValueError(f"Price data is not available for {who} '{self.ticker}'.")
-
-    def make_log_returns(self):
-        self._require_data()
-        self.price_data = log_returns(self.price_data)
+    def get_short_interest(self, start_date=None, end_date=None, *, api_key=None):
+        """Load the latest short-interest record, or dated history."""
+        self.short_interest = None
+        self.short_interest = massive.fetch_short_interest(
+            self.ticker, start_date, end_date, api_key=api_key
+        )
         return self
 
-    def winsorize_log_returns(self, threshold=5.0):
-        self._require_data()
-        self.price_data = winsorize_log_returns_inplace(self.price_data, threshold=threshold)
-        self._log_returns_winsorized = True
+    def get_short_volume(self, start_date=None, end_date=None, *, api_key=None):
+        """Load the latest off-exchange short-sale volume, or dated history."""
+        self.short_volume = None
+        self.short_volume = massive.fetch_short_volume(
+            self.ticker, start_date, end_date, api_key=api_key
+        )
         return self
 
-    def join_with_market_index(self):
-        self._require_data()
-        if not self.mkt_index or self.mkt_index.price_data is None or self.mkt_index.price_data.is_empty():
-            raise ValueError("Market index data is not available.")
-        mkt = self.mkt_index.price_data.select("date", pl.col("log_return").alias("mkt_log_return"))
-        self.price_data = self.price_data.join(mkt, on="date", how="left").drop_nulls()
+    def get_float(self, *, api_key=None):
+        """Load the provider's latest dated float record, if available."""
+        self.float_data = None
+        self.float_data = massive.fetch_float(self.ticker, api_key=api_key)
         return self
 
-    def compute_beta(self):
-        self._require_data()
-        if "mkt_log_return" not in self.price_data.columns:
-            raise ValueError("Market log returns are not available. Please join with market index first.")
-        cov = self.price_data.select(pl.cov("log_return", "mkt_log_return")).item()
-        var = self.price_data.select(pl.var("mkt_log_return")).item()
-        if var == 0:
-            raise ValueError("Variance of market log returns is zero, cannot compute beta.")
-        self.beta = cov / var
+    def get_news_sentiment(self, start_date=None, end_date=None, *, api_key=None):
+        """Load articles and ticker-specific insights without scoring them."""
+        self.news_sentiment = None
+        self.news_coverage = None
+        end = date.fromisoformat(end_date) if isinstance(end_date, str) else end_date
+        end = end if end is not None else datetime.now(timezone.utc).date()
+        start = date.fromisoformat(start_date) if isinstance(start_date, str) else start_date
+        start = start if start is not None else end - timedelta(days=6)
+        self.news_sentiment = massive.fetch_news_sentiment(
+            self.ticker, start, end, api_key=api_key
+        )
+        self.news_coverage = (start, end)
         return self
 
-    def get_idiosyncratic_returns(self):
-        self._require_data()
-        if not hasattr(self, "beta"):
-            raise ValueError("Beta is not computed. Please compute beta first.")
-        self.price_data = self.price_data.with_columns((pl.col("log_return") - pl.col("mkt_log_return") * self.beta).alias("idiosyncratic_returns"))
+    def fetch_analyst_data(self) -> "EquityTicker":
+        """Load both Yahoo analyst inputs used by the factor calculation."""
+        self.loaded_recommendations = None
+        self.loaded_price_targets = None
+        self.loaded_recommendations = self.get_recommendations_summary()
+        self.loaded_price_targets = self.get_analyst_price_targets()
         return self
-
-    def getCombinedRating(self, lam=0.8, k=10):
-        data = pl.DataFrame(self.get_recommendations_summary()).to_dicts()
-        mu_star = direction(data, lam)
-        C_star = agreement(data, lam)
-        T = stability(data, lam)
-        S = sample_confidence(data, lam, k)
-        self.combined_rating = (mu_star / 2) * C_star * T * S
-        return self
-
-    def getAnalystPriceTargetDeviation(self):
-        price_targets = self.get_analyst_price_targets()
-        if not isinstance(price_targets, dict) or not price_targets:
-            self.analyst_price_target_deviation = None
-            return self
-        try:
-            self.analyst_price_target_deviation = round(median_centered_score(price_targets), 2)
-        except (KeyError, TypeError, ValueError):
-            self.analyst_price_target_deviation = None
-        return self
-
-    def __weighted_avg_tail__ (self, tail_size: int, array):
-        tail_size = min(tail_size, len(array))
-        if tail_size == 0:
-            return np.nan
-        w = np.arange(1, tail_size + 1)
-        return np.dot(array[-tail_size:], w) / w.sum()
-
-    def _prepare_price_data_for_window(self, lookback_window: int | None):
-        self._require_data()
-        if lookback_window is not None:
-            if lookback_window <= 0:
-                raise ValueError("lookback_window must be positive.")
-            columns = [column for column in ("date", "close", "ticker") if column in self.price_data.columns]
-            self.price_data = self.price_data.select(columns).sort("date").tail(lookback_window + 1)
-            self.make_log_returns()
-            self.price_data = self.price_data.tail(lookback_window)
-            self._log_returns_winsorized = False
-        elif "log_return" not in self.price_data.columns:
-            self.make_log_returns()
-        return self
-
-    def _prepare_momentum_data(self, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
-        self._prepare_price_data_for_window(lookback_window)
-        if winsorize and not self._log_returns_winsorized:
-            self.winsorize_log_returns()
-        if use_idiosyncratic_returns:
-            if not self.mkt_index:
-                raise ValueError("Market index is required for idiosyncratic momentum.")
-            self.mkt_index._prepare_price_data_for_window(lookback_window)
-            if winsorize and not self.mkt_index._log_returns_winsorized:
-                self.mkt_index.winsorize_log_returns()
-            if lookback_window is not None and hasattr(self, "beta"):
-                del self.beta
-            if lookback_window is not None or "mkt_log_return" not in self.price_data.columns:
-                self.price_data = self.price_data.drop(
-                    [column for column in ("mkt_log_return", "idiosyncratic_returns") if column in self.price_data.columns]
-                )
-                self.join_with_market_index()
-            if not hasattr(self, "beta"):
-                self.compute_beta()
-            if lookback_window is not None or "idiosyncratic_returns" not in self.price_data.columns:
-                if "idiosyncratic_returns" in self.price_data.columns:
-                    self.price_data = self.price_data.drop("idiosyncratic_returns")
-                self.get_idiosyncratic_returns()
-        elif "idiosyncratic_returns" not in self.price_data.columns:
-            self.price_data = self.price_data.with_columns(
-                pl.col("log_return").alias("idiosyncratic_returns")
-            ).drop_nulls()
-        return self
-
-    def get_long_term_momentum_signal(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
-        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns, lookback_window=lookback_window)
-        eta = np.log(2) / half_life
-        ltm = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
-        self.ltm = self.__weighted_avg_tail__(5,ltm)
-        return self
-
-    def get_short_term_momentum_signal(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}, winsorize=True, use_idiosyncratic_returns=True, lookback_window: int | None = None):
-        self._prepare_momentum_data(winsorize=winsorize, use_idiosyncratic_returns=use_idiosyncratic_returns, lookback_window=lookback_window)
-        eta = np.log(2) / half_life
-        stm = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
-        self.stm = self.__weighted_avg_tail__(5, stm)
-        return self
-
-    def _get_stm_series(self, half_life=20, volatility_model=ema_volatility, volatility_model_args={}, lookback_window: int | None = None):
-        if lookback_window is not None:
-            self._prepare_momentum_data(lookback_window=lookback_window)
-        else:
-            self._require_data()
-        eta = np.log(2) / half_life
-        stm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
-        return stm_series
-
-    def _get_ltm_series(self, half_life=112, volatility_model=ema_volatility, volatility_model_args={}, lookback_window: int | None = None):
-        if lookback_window is not None:
-            self._prepare_momentum_data(lookback_window=lookback_window)
-        else:
-            self._require_data()
-        eta = np.log(2) / half_life
-        ltm_series = compute_ema_signal(price_data=self.price_data, volatility_model=volatility_model, volatility_model_args=volatility_model_args, eta=eta)
-        return ltm_series
-
-    def plot(self, what=np.ndarray):
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError:
-            raise ImportError("matplotlib is required for plotting. Please install it with 'pip install matplotlib'.")
-        plt.plot(what)
-        plt.show()
