@@ -5,7 +5,8 @@ from typing import ClassVar
 import numpy as np
 import polars as pl
 
-from ats.ticker import EquityTicker, log_returns
+from ats.ticker import EquityTicker
+from ats.momentum import log_returns
 
 
 YAHOO_COUNTRY_SUFFIXES = {
@@ -65,7 +66,7 @@ def return_on_position(
     country: str | None = None,
 ) -> float | None:
     """Return the same-day log return for a held position's ticker."""
-    equity_ticker = EquityTicker(yahoo_ticker(ticker, country))
+    equity_ticker = EquityTicker(yahoo_ticker(ticker, country)).fetch_price_data()
     if equity_ticker.price_data.is_empty():
         return None
     returns_df = log_returns(equity_ticker.price_data)

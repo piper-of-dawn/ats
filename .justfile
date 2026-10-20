@@ -1,6 +1,7 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 build:
+    rm -rf build
     uv build --wheel
 
 host-web host="0.0.0.0" port="8000":

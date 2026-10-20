@@ -1,0 +1,128 @@
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 72, unit: 'HOURS')
+    }
+
+    parameters {
+        string(name: 'IMAGE_REF', defaultValue: 'piperofthedawn/ats:data-collection', description: 'Published image tag or repository@sha256:digest. Pulled before every collection.')
+        string(name: 'DOCKERHUB_CREDENTIAL_ID', defaultValue: '', description: 'Optional Jenkins Username with password credential: Docker Hub username and access token. Blank uses existing Docker authentication or anonymous access.')
+        string(name: 'MASSIVE_CREDENTIAL_ID', defaultValue: 'massive-api-key', description: 'Jenkins Secret text credential holding the Massive API key.')
+        string(name: 'STATE_DIR', defaultValue: '/var/lib/jenkins/data-collection', description: 'Persistent directory on the Docker host, writable by the Jenkins agent user.')
+        string(name: 'RUN_ID', defaultValue: 'initial', description: 'Reuse this ID to resume. Use a new ID for a new daily collection.')
+        text(name: 'TICKERS', defaultValue: 'AAPL\nMSFT', description: 'Paste the universe here (e.g. all 500 tickers), separated by newlines, commas or spaces.')
+        string(name: 'DATASETS', defaultValue: '', description: 'Optional feed names separated by commas or spaces; blank collects all default feeds.')
+        string(name: 'START_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or two years on a new run.')
+        string(name: 'END_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or today on a new run.')
+    }
+
+    stages {
+        stage('Prepare') {
+            steps {
+                script {
+                    if (!(params.RUN_ID ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/)) {
+                        error('RUN_ID must contain 1-64 letters, digits, dots, underscores or hyphens, starting with a letter or digit.')
+                    }
+                    if (!params.TICKERS.trim()) {
+                        error('TICKERS must contain the selected universe.')
+                    }
+                    if (!params.IMAGE_REF.trim() || params.IMAGE_REF.trim().startsWith('-')) {
+                        error('IMAGE_REF must be a published image tag or digest.')
+                    }
+                    env.COLLECTION_IMAGE = params.IMAGE_REF.trim()
+                    env.COLLECTION_CONTAINER = "collection-${env.JOB_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')}-${env.BUILD_NUMBER}"
+                    writeFile(file: '.collection-tickers.txt', text: params.TICKERS)
+                }
+                sh '''#!/bin/sh
+set -eu
+docker info >/dev/null
+case "$STATE_DIR" in /*) ;; *) echo 'STATE_DIR must be an absolute Docker-host path.' >&2; exit 1 ;; esac
+mkdir -p "$STATE_DIR/runs/$RUN_ID"
+if [ -f "$STATE_DIR/runs/$RUN_ID/tickers.txt" ]; then
+    cmp .collection-tickers.txt "$STATE_DIR/runs/$RUN_ID/tickers.txt" || {
+        echo 'Ticker selection changed: choose a new RUN_ID.' >&2
+        exit 1
+    }
+else
+    cp .collection-tickers.txt "$STATE_DIR/runs/$RUN_ID/tickers.txt"
+fi
+'''
+            }
+        }
+
+        stage('Pull Published Image') {
+            steps {
+                script {
+                    def pullImage = {
+                        sh '''#!/bin/sh
+set +x
+set -eu
+if [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+    DOCKER_CONFIG="$(mktemp -d)"
+    export DOCKER_CONFIG
+    trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+    printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+fi
+docker pull "$COLLECTION_IMAGE"
+docker image inspect --format '{{json .RepoDigests}}' "$COLLECTION_IMAGE"
+'''
+                    }
+                    if (params.DOCKERHUB_CREDENTIAL_ID.trim()) {
+                        withCredentials([usernamePassword(credentialsId: params.DOCKERHUB_CREDENTIAL_ID.trim(), usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_TOKEN')]) {
+                            pullImage()
+                        }
+                    } else {
+                        withEnv(['DOCKERHUB_USERNAME=', 'DOCKERHUB_TOKEN=']) {
+                            pullImage()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Collect Universe') {
+            steps {
+                withCredentials([string(credentialsId: params.MASSIVE_CREDENTIAL_ID, variable: 'MASSIVE_API_KEY')]) {
+                    sh '''#!/bin/sh
+set +x
+set -eu
+set -- --tickers-file "/data/runs/$RUN_ID/tickers.txt" \
+    --output "/data/runs/$RUN_ID/stocks.jsonl" \
+    --log-file "/data/runs/$RUN_ID/collection.log" --log-to-stderr
+if [ -n "$DATASETS" ]; then set -- "$@" --datasets "$DATASETS"; fi
+if [ -n "$START_DATE" ]; then set -- "$@" --start "$START_DATE"; fi
+if [ -n "$END_DATE" ]; then set -- "$@" --end "$END_DATE"; fi
+trap 'docker stop --time 30 "$COLLECTION_CONTAINER" >/dev/null 2>&1 || true' EXIT
+docker run --pull=never --rm --init --stop-timeout 30 \
+    --name "$COLLECTION_CONTAINER" \
+    --user "$(id -u):$(id -g)" \
+    --env MASSIVE_API_KEY \
+    --mount "type=bind,src=$STATE_DIR,dst=/data" \
+    "$COLLECTION_IMAGE" "$@"
+'''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh(returnStatus: true, script: '''#!/bin/sh
+set +x
+if [ -n "${COLLECTION_CONTAINER:-}" ]; then
+    docker stop --time 30 "$COLLECTION_CONTAINER" >/dev/null 2>&1 || true
+fi
+''')
+        }
+        success {
+            echo "Collection complete. Results, checkpoints and logs: ${params.STATE_DIR}/runs/${params.RUN_ID}"
+        }
+        unsuccessful {
+            echo "Saved checkpoints are retained. Rerun with RUN_ID=${params.RUN_ID} to resume; check collection.log for failed or empty feeds."
+        }
+    }
+}

@@ -1,0 +1,11 @@
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!Dockerfile
+!Jenkinsfile
+!src/
+!src/data_collection/
+!src/data_collection/*.py
+!tests/
+!tests/*.py

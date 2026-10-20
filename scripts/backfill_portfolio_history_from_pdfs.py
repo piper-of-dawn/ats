@@ -14,7 +14,8 @@ if str(ROOT) not in sys.path:
 
 from ats.dataIO.open_positions import parse_open_positions
 from ats.dataIO.supabase_integration import batch_insert
-from ats.ticker import EquityTicker, log_returns
+from ats.ticker import EquityTicker
+from ats.momentum import log_returns
 from polars_positions_weights import (
     PositionReturn,
     portfolio_gini_coefficient,
@@ -102,7 +103,7 @@ def load_return_cache(positions_by_date: dict[date, pl.DataFrame]) -> dict[str, 
     cache: dict[str, dict[date, float]] = {}
     for index, symbol in enumerate(yahoo_symbols, start=1):
         try:
-            equity_ticker = EquityTicker(symbol)
+            equity_ticker = EquityTicker(symbol).fetch_price_data()
             if equity_ticker.price_data.is_empty():
                 cache[symbol] = {}
                 print(f"{index}/{len(yahoo_symbols)} missing {symbol}", flush=True)
