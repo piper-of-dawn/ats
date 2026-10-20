@@ -89,6 +89,17 @@ def yahoo(monkeypatch):
     return requests
 
 
+def test_share_class_symbols_keep_massive_notation_and_use_yahoo_alias(transport, yahoo):
+    replies, calls = transport
+    replies.append({"results": {"ticker": "BRK.B"}})
+    result = collect_ticker("BRK.B", datasets=["prices", "reference"],
+                            start_date="2026-10-01", end_date="2026-10-20")
+    assert result["ticker"] == "BRK.B"
+    assert ("ticker", "BRK-B") in yahoo
+    assert calls[0][1].full_url.endswith("/v3/reference/tickers/BRK.B")
+    assert all(feed["status"] == "ok" for feed in result["datasets"].values())
+
+
 def test_default_collection_preserves_inputs_and_follows_every_page(transport, yahoo):
     replies, calls = transport
     replies.extend([

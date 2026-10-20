@@ -33,6 +33,9 @@ pipeline {
                     if (!params.IMAGE_REF.trim() || params.IMAGE_REF.trim().startsWith('-')) {
                         error('IMAGE_REF must be a published image tag or digest.')
                     }
+                    // On a job's first build, parameter defaults may only exist in params.
+                    env.STATE_DIR = params.STATE_DIR
+                    env.RUN_ID = params.RUN_ID
                     env.COLLECTION_IMAGE = params.IMAGE_REF.trim()
                     env.COLLECTION_CONTAINER = "collection-${env.JOB_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')}-${env.BUILD_NUMBER}"
                     writeFile(file: '.collection-tickers.txt', text: params.TICKERS)
@@ -93,9 +96,9 @@ set -eu
 set -- --tickers-file "/data/runs/$RUN_ID/tickers.txt" \
     --output "/data/runs/$RUN_ID/stocks.jsonl" \
     --log-file "/data/runs/$RUN_ID/collection.log" --log-to-stderr
-if [ -n "$DATASETS" ]; then set -- "$@" --datasets "$DATASETS"; fi
-if [ -n "$START_DATE" ]; then set -- "$@" --start "$START_DATE"; fi
-if [ -n "$END_DATE" ]; then set -- "$@" --end "$END_DATE"; fi
+if [ -n "${DATASETS:-}" ]; then set -- "$@" --datasets "$DATASETS"; fi
+if [ -n "${START_DATE:-}" ]; then set -- "$@" --start "$START_DATE"; fi
+if [ -n "${END_DATE:-}" ]; then set -- "$@" --end "$END_DATE"; fi
 trap 'docker stop --time 30 "$COLLECTION_CONTAINER" >/dev/null 2>&1 || true' EXIT
 docker run --pull=never --rm --init --stop-timeout 30 \
     --name "$COLLECTION_CONTAINER" \

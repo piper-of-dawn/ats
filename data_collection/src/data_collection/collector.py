@@ -190,7 +190,8 @@ def collect_ticker(
 def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log) -> dict[str, Any]:
     ticker = _symbol(ticker)
     selected = _datasets(datasets)
-    stock = yf.Ticker(ticker) if set(selected) & YAHOO_DATASETS else None
+    # Wikipedia and Massive use BRK.B/BF.B; Yahoo uses BRK-B/BF-B.
+    stock = yf.Ticker(ticker.replace(".", "-")) if set(selected) & YAHOO_DATASETS else None
     fetchers = {
         "prices": lambda: _records(stock.history(
             start=start.isoformat(), end=(end + timedelta(days=1)).isoformat(),

@@ -47,8 +47,12 @@ if args[0] == 'pull':
 
 
 @pytest.mark.parametrize("authenticated", [False, True])
-def test_jenkins_shell_commands_pull_and_run_with_scoped_credentials(tmp_path, authenticated):
+@pytest.mark.parametrize("optional_parameters_set", [False, True])
+def test_jenkins_shell_commands_pull_and_run_with_scoped_credentials(tmp_path, authenticated, optional_parameters_set):
     env, calls_file, tickers = _environment(tmp_path)
+    if not optional_parameters_set:
+        for name in ("DATASETS", "START_DATE", "END_DATE"):
+            env.pop(name)
     if authenticated:
         env["COLLECTION_IMAGE"] = "piperofthedawn/ats@sha256:" + "a" * 64
     scripts = _scripts()
@@ -85,7 +89,12 @@ def test_jenkins_shell_commands_pull_and_run_with_scoped_credentials(tmp_path, a
     assert "--pull=never" in argv
     assert env["COLLECTION_IMAGE"] in argv
     assert argv[argv.index("--env") + 1] == "MASSIVE_API_KEY"
-    assert argv[argv.index("--datasets") + 1] == "reference,news"
+    if optional_parameters_set:
+        assert argv[argv.index("--datasets") + 1] == "reference,news"
+        assert argv[argv.index("--start") + 1] == "2026-10-01"
+        assert argv[argv.index("--end") + 1] == "2026-10-20"
+    else:
+        assert not {"--datasets", "--start", "--end"}.intersection(argv)
     assert argv[argv.index("--output") + 1] == "/data/runs/initial/stocks.jsonl"
     assert all("do-not-log-this-secret" not in arg for arg in argv)
     assert "do-not-log-registry-token" not in calls_file.read_text()

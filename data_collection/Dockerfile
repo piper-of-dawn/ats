@@ -8,7 +8,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN uv sync --frozen --no-dev --no-editable
 
-# Jenkins builds this target first; test dependencies never enter the runtime.
+# Release validation target; test dependencies never enter the runtime.
 FROM build AS test
 COPY tests ./tests
 COPY Dockerfile Jenkinsfile ./
