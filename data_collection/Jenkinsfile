@@ -9,22 +9,26 @@ pipeline {
     }
 
     parameters {
-        string(name: 'IMAGE_REF', defaultValue: 'piperofthedawn/ats:data-collection', description: 'Published image tag or repository@sha256:digest. Pulled before every collection.')
+        string(name: 'IMAGE_REF', defaultValue: 'piperofthedawn/ats:data-collection-v2', description: 'Published image tag or repository@sha256:digest. Pulled before every collection.')
         string(name: 'DOCKERHUB_CREDENTIAL_ID', defaultValue: '', description: 'Optional Jenkins Username with password credential: Docker Hub username and access token. Blank uses existing Docker authentication or anonymous access.')
         string(name: 'MASSIVE_CREDENTIAL_ID', defaultValue: 'massive-api-key', description: 'Jenkins Secret text credential holding the Massive API key.')
-        string(name: 'STATE_DIR', defaultValue: '/var/lib/jenkins/data-collection', description: 'Persistent directory on the Docker host, writable by the Jenkins agent user.')
-        string(name: 'RUN_ID', defaultValue: 'initial', description: 'Reuse this ID to resume. Use a new ID for a new daily collection.')
-        text(name: 'TICKERS', defaultValue: 'AAPL\nMSFT', description: 'Paste the universe here (e.g. all 500 tickers), separated by newlines, commas or spaces.')
+        string(name: 'STATE_DIR', defaultValue: '/home/karma/data-collection', description: 'Persistent directory on the Docker host, writable by the Jenkins agent user.')
+        string(name: 'RUN_ID', defaultValue: '', description: 'Blank uses daily-v2-YYYY-MM-DD (UTC). Reuse an explicit ID to resume the same saved window.')
+        text(name: 'TICKERS', defaultValue: params.TICKERS ?: 'AAPL\nMSFT', description: 'Paste the universe here (e.g. all 500 tickers), separated by newlines, commas or spaces.')
         string(name: 'DATASETS', defaultValue: '', description: 'Optional feed names separated by commas or spaces; blank collects all default feeds.')
-        string(name: 'START_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or two years on a new run.')
-        string(name: 'END_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or today on a new run.')
+        string(name: 'START_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or the preceding weekday on a new run.')
+        string(name: 'END_DATE', defaultValue: '', description: 'Optional inclusive YYYY-MM-DD. Blank uses the saved window, or the preceding weekday on a new run.')
+        string(name: 'OPTION_TARGET_DAYS', defaultValue: '30', description: 'Minimum option tenor in calendar days; actual selected expiry is saved.')
+        string(name: 'RV_WINDOW', defaultValue: '21', description: 'Number of trailing daily returns for realized volatility.')
+        string(name: 'RISK_FREE_RATE', defaultValue: '0.04', description: 'Annual continuous risk-free rate, decimal; constant model assumption.')
+        string(name: 'DIVIDEND_YIELD', defaultValue: '0.0', description: 'Annual continuous dividend yield, decimal; constant model assumption.')
     }
 
     stages {
         stage('Prepare') {
             steps {
                 script {
-                    if (!(params.RUN_ID ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/)) {
+                    if (params.RUN_ID.trim() && !(params.RUN_ID ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/)) {
                         error('RUN_ID must contain 1-64 letters, digits, dots, underscores or hyphens, starting with a letter or digit.')
                     }
                     if (!params.TICKERS.trim()) {
@@ -35,7 +39,7 @@ pipeline {
                     }
                     // On a job's first build, parameter defaults may only exist in params.
                     env.STATE_DIR = params.STATE_DIR
-                    env.RUN_ID = params.RUN_ID
+                    env.RUN_ID = params.RUN_ID.trim() ?: "daily-v2-${new Date().format('yyyy-MM-dd', TimeZone.getTimeZone('UTC'))}"
                     env.COLLECTION_IMAGE = params.IMAGE_REF.trim()
                     env.COLLECTION_CONTAINER = "collection-${env.JOB_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')}-${env.BUILD_NUMBER}"
                     writeFile(file: '.collection-tickers.txt', text: params.TICKERS)
@@ -44,7 +48,7 @@ pipeline {
 set -eu
 docker info >/dev/null
 case "$STATE_DIR" in /*) ;; *) echo 'STATE_DIR must be an absolute Docker-host path.' >&2; exit 1 ;; esac
-mkdir -p "$STATE_DIR/runs/$RUN_ID"
+mkdir -p "$STATE_DIR/runs/$RUN_ID" "$STATE_DIR/cache"
 if [ -f "$STATE_DIR/runs/$RUN_ID/tickers.txt" ]; then
     cmp .collection-tickers.txt "$STATE_DIR/runs/$RUN_ID/tickers.txt" || {
         echo 'Ticker selection changed: choose a new RUN_ID.' >&2
@@ -95,7 +99,11 @@ set +x
 set -eu
 set -- --tickers-file "/data/runs/$RUN_ID/tickers.txt" \
     --output "/data/runs/$RUN_ID/stocks.jsonl" \
-    --log-file "/data/runs/$RUN_ID/collection.log" --log-to-stderr
+    --log-file "/data/runs/$RUN_ID/collection.log" --log-to-stderr \
+    --price-mode bulk --market-cache /data/cache/market-v2.sqlite \
+    --options-history-days 0 --option-target-days "${OPTION_TARGET_DAYS:-30}" \
+    --rv-window "${RV_WINDOW:-21}" --risk-free-rate "${RISK_FREE_RATE:-0.04}" \
+    --dividend-yield "${DIVIDEND_YIELD:-0.0}"
 if [ -n "${DATASETS:-}" ]; then set -- "$@" --datasets "$DATASETS"; fi
 if [ -n "${START_DATE:-}" ]; then set -- "$@" --start "$START_DATE"; fi
 if [ -n "${END_DATE:-}" ]; then set -- "$@" --end "$END_DATE"; fi
@@ -104,6 +112,7 @@ docker run --pull=never --rm --init --stop-timeout 30 \
     --name "$COLLECTION_CONTAINER" \
     --user "$(id -u):$(id -g)" \
     --env MASSIVE_API_KEY \
+    --env MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite \
     --mount "type=bind,src=$STATE_DIR,dst=/data" \
     "$COLLECTION_IMAGE" "$@"
 '''
@@ -122,10 +131,10 @@ fi
 ''')
         }
         success {
-            echo "Collection complete. Results, checkpoints and logs: ${params.STATE_DIR}/runs/${params.RUN_ID}"
+            echo "Collection complete. Results, checkpoints and logs: ${params.STATE_DIR}/runs/${env.RUN_ID}"
         }
         unsuccessful {
-            echo "Saved checkpoints are retained. Rerun with RUN_ID=${params.RUN_ID} to resume; check collection.log for failed or empty feeds."
+            echo "Saved checkpoints are retained. Rerun with RUN_ID=${env.RUN_ID} to resume; check collection.log for failed or empty feeds."
         }
     }
 }

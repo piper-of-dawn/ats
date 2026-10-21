@@ -4,6 +4,7 @@
 !README.md
 !Dockerfile
 !Jenkinsfile
+!Jenkinsfile.backfill
 !src/
 !src/data_collection/
 !src/data_collection/*.py

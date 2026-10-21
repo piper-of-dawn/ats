@@ -11,8 +11,8 @@ import pytest
 PROJECT = Path(__file__).resolve().parents[1]
 
 
-def _scripts():
-    text = (PROJECT / "Jenkinsfile").read_text()
+def _scripts(filename="Jenkinsfile"):
+    text = (PROJECT / filename).read_text()
     return re.findall(r"'''(#!/bin/sh\n.*?)'''", text, re.DOTALL)
 
 
@@ -116,3 +116,26 @@ def test_jenkins_pull_failure_stops_and_removes_login_config(tmp_path):
     calls = [json.loads(line) for line in calls_file.read_text().splitlines()]
     assert [call["argv"][0] for call in calls] == ["login", "pull"]
     assert not Path(calls[0]["docker_config"]).exists()
+
+
+def test_backfill_uses_separate_entrypoint_full_dates_and_shared_quota(tmp_path):
+    env, calls_file, _ = _environment(tmp_path)
+    scripts = _scripts('Jenkinsfile.backfill')
+    assert len(scripts) == 4
+    env.update(MASSIVE_API_KEY='backfill-secret', OPTION_TARGET_DAYS='45',
+               RV_WINDOW='30', RISK_FREE_RATE='0.035', DIVIDEND_YIELD='0.01')
+    for index in (0, 2, 3):
+        subprocess.run(['/bin/sh', '-n'], input=scripts[index], text=True, check=True)
+        result = subprocess.run(['/bin/sh'], input=scripts[index], text=True, cwd=tmp_path,
+                                env=env, capture_output=True, check=True)
+        assert 'backfill-secret' not in result.stdout + result.stderr
+    argv = next(json.loads(line)['argv'] for line in calls_file.read_text().splitlines()
+                if json.loads(line)['argv'][0] == 'run')
+    assert argv[argv.index('--entrypoint') + 1] == 'backfill-options'
+    assert argv[argv.index('--options-history-days') + 1] == '-1'
+    assert argv[argv.index('--start') + 1] == '2026-10-01'
+    assert argv[argv.index('--end') + 1] == '2026-10-20'
+    assert argv[argv.index('--price-mode') + 1] == 'ticker'
+    assert argv[argv.index('--risk-free-rate') + 1] == '0.035'
+    assert 'MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite' in argv
+    assert '--datasets' not in argv  # Backfill CLI supplies only prices/options.

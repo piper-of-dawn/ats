@@ -4,18 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stock-data-collection"
-version = "0.1.0"
+version = "0.2.0"
 description = "Resumable free-tier Yahoo Finance and Massive stock data collection"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pandas>=3.0.1,<4",
+    "numpy>=2.2,<3",
+    "scipy>=1.15,<2",
     "python-dotenv>=1.2,<2",
     "yfinance==1.2.0",
 ]
 
 [project.scripts]
 collect-stocks = "data_collection.__main__:main"
+backfill-options = "data_collection.backfill:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<10"]

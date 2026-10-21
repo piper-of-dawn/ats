@@ -1,14 +1,16 @@
 """Standalone Massive client: stdlib HTTP, pagination, retries and shared pacing.
 
 Adapted from the ATS helper so this project does not depend on the ATS package.
-The limiter coordinates this process only; run one worker per API allowance.
+Set MASSIVE_RATE_STATE to a shared SQLite path to coordinate separate processes.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import time
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from http.client import HTTPException
@@ -37,6 +39,25 @@ class _RequestLimiter:
         self.last_start = None
 
     def wait(self):
+        state = os.environ.get("MASSIVE_RATE_STATE")
+        if state:
+            # Share request starts between the normal and backfill containers.
+            # Reserve a slot atomically, then release SQLite before sleeping.
+            path = Path(state)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(path, timeout=30, isolation_level=None) as db:
+                db.execute("CREATE TABLE IF NOT EXISTS rate (id INTEGER PRIMARY KEY, next_start REAL NOT NULL)")
+                db.execute("BEGIN IMMEDIATE")
+                row = db.execute("SELECT next_start FROM rate WHERE id = 1").fetchone()
+                now = time.time()
+                reserved = max(now, row[0]) if row else now
+                db.execute("INSERT OR REPLACE INTO rate VALUES (1, ?)", (reserved + self.interval,))
+                db.commit()
+            remaining = reserved - time.time()
+            while remaining > 0:
+                self.sleep(remaining)
+                remaining = reserved - time.time()
+            return
         if self.last_start is not None:
             remaining = self.interval - (self.clock() - self.last_start)
             while remaining > 0:

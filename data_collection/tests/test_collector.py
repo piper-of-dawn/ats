@@ -1,7 +1,6 @@
 import io
 import json
 from datetime import datetime, timezone
-from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlsplit
 
@@ -29,6 +28,7 @@ def transport(monkeypatch):
         return io.BytesIO(json.dumps(reply).encode())
 
     monkeypatch.setenv("POLYGON_IO", "test-secret")
+    monkeypatch.delenv("MASSIVE_RATE_STATE", raising=False)
     monkeypatch.delenv("MASSIVE_API_KEY", raising=False)
     monkeypatch.delenv("MASSIVE_API_BASE_URL", raising=False)
     monkeypatch.delenv("POLYGON_API_BASE_URL", raising=False)
@@ -51,12 +51,7 @@ def yahoo(monkeypatch):
             requests.append(("ticker", ticker))
 
         def history(self, **kwargs):
-            requests.append(("history", kwargs))
-            return pd.DataFrame(
-                {"Close": [100.0], "Adj Close": [float("nan")], "Volume": [1234],
-                 "Dividends": [0.5], "Stock Splits": [0.0]},
-                index=pd.DatetimeIndex(["2026-10-19"], name="Date"),
-            )
+            pytest.fail("Yahoo prices have been retired")
 
         def get_cash_flow(self, **kwargs):
             return pd.DataFrame({pd.Timestamp("2026-06-30"): [20.0, -5.0]},
@@ -75,14 +70,7 @@ def yahoo(monkeypatch):
 
         @property
         def options(self):
-            return ("2026-10-23", "2026-11-10", "2026-11-25", "2027-01-10", "2027-01-25")
-
-        def option_chain(self, expiry):
-            requests.append(("option_chain", expiry))
-            return SimpleNamespace(
-                calls=pd.DataFrame({"strike": [100.0], "impliedVolatility": [0.25]}),
-                puts=pd.DataFrame({"strike": [100.0], "impliedVolatility": [0.3]}),
-            )
+            pytest.fail("Yahoo options have been retired")
 
     monkeypatch.setattr(collector.yf, "Ticker", Stock)
     monkeypatch.setattr(collector, "datetime", Clock)
@@ -92,7 +80,7 @@ def yahoo(monkeypatch):
 def test_share_class_symbols_keep_massive_notation_and_use_yahoo_alias(transport, yahoo):
     replies, calls = transport
     replies.append({"results": {"ticker": "BRK.B"}})
-    result = collect_ticker("BRK.B", datasets=["prices", "reference"],
+    result = collect_ticker("BRK.B", datasets=["cash_flow", "reference"],
                             start_date="2026-10-01", end_date="2026-10-20")
     assert result["ticker"] == "BRK.B"
     assert ("ticker", "BRK-B") in yahoo
@@ -100,12 +88,13 @@ def test_share_class_symbols_keep_massive_notation_and_use_yahoo_alias(transport
     assert all(feed["status"] == "ok" for feed in result["datasets"].values())
 
 
-def test_default_collection_preserves_inputs_and_follows_every_page(transport, yahoo):
+def test_default_collection_preserves_inputs_and_follows_every_page(transport, yahoo, monkeypatch):
     replies, calls = transport
+    monkeypatch.setattr(collector, "collect_option_metrics", lambda *a, **k: [{"date": "2026-10-19", "status": "ok", "implied_volatility": 0.25}])
     replies.extend([
+        {"results": [{"t": 1792382400000, "c": 100., "v": 1234}]},
         {"results": {"market_cap": 1000000, "ticker": "AAPL"}},
         {"results": [{"settlement_date": "2026-10-15", "days_to_cover": 2.5}]},
-        {"results": [{"effective_date": "2026-10-01", "free_float": 1000}]},
         {"results": [{"date": "2026-10-19", "short_volume_ratio": 42}]},
         {"results": [{"id": "news1", "insights": [{"ticker": "AAPL", "sentiment": "positive"}]}],
          "next_url": "https://api.massive.com/v2/reference/news?cursor=news"},
@@ -120,8 +109,9 @@ def test_default_collection_preserves_inputs_and_follows_every_page(transport, y
     assert result["ticker"] == "AAPL"
     assert all(feed["status"] == "ok" for feed in feeds.values())
     assert feeds["prices"]["data"][0]["Volume"] == 1234
-    assert feeds["prices"]["data"][0]["Dividends"] == 0.5
-    assert feeds["prices"]["data"][0]["Adj Close"] is None
+    assert feeds["prices"]["provider"] == feeds["options"]["provider"] == "massive"
+    assert "Adj Close" not in feeds["prices"]["data"][0]
+    assert "float" not in feeds
     assert feeds["cash_flow"]["data"][0]["Capital Expenditure"] == -5
     assert feeds["earnings"]["data"][0]["period_end"].startswith("2026-06-30")
     assert feeds["reference"]["scope"] == "current_snapshot"
@@ -134,11 +124,6 @@ def test_default_collection_preserves_inputs_and_follows_every_page(transport, y
     assert params["tickers"] == ["AAPL"]
     assert params["filing_date.gte"] == ["2026-10-01"]
     assert params["limit"] == ["10000"]
-    history = next(kwargs for name, kwargs in yahoo if name == "history")
-    assert history["end"] == "2026-10-21"  # Yahoo's end is exclusive.
-    assert history["actions"] and not history["auto_adjust"]
-    selected_expirations = [expiry for name, expiry in yahoo if name == "option_chain"]
-    assert selected_expirations == ["2026-11-10", "2026-11-25", "2027-01-10", "2027-01-25"]
     assert "test-secret" not in json.dumps(result, allow_nan=False)
 
 

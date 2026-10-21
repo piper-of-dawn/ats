@@ -1,2 +1,2 @@
-include Dockerfile Jenkinsfile uv.lock .dockerignore .env.example
+include Dockerfile Jenkinsfile Jenkinsfile.backfill uv.lock .dockerignore .env.example
 recursive-include tests *.py

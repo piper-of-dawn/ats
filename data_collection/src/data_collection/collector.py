@@ -1,7 +1,7 @@
 """Collect serializable source dictionaries using yfinance and a local Massive client.
 
-No requests run at import time. Massive pagination/retries share a process-wide
-13-second limiter. Run one collector process per API allowance.
+No requests run at import time. Massive pagination/retries share a 13-second
+limiter; MASSIVE_RATE_STATE also coordinates separate collector processes.
 """
 
 from __future__ import annotations
@@ -21,7 +21,8 @@ from urllib.parse import quote
 import pandas as pd
 import yfinance as yf
 
-from . import massive
+from . import massive, market
+from .option_metrics import OptionSettings, collect_option_metrics
 from .checkpoints import Checkpoints
 
 DEFAULT_LOG_PATH = Path("logs/data_collection.log")
@@ -43,20 +44,21 @@ def _logger(path: str | Path) -> logging.Logger:
 
 DEFAULT_DATASETS = (
     "prices", "cash_flow", "analyst_actions", "earnings",
-    "reference", "short_interest", "float", "short_volume", "news",
+    "reference", "short_interest", "short_volume", "news",
     "insider_transactions", "options",
 )
 YAHOO_DATASETS = {
-    "prices", "cash_flow", "income_statement", "balance_sheet",
-    "analyst_actions", "earnings", "options",
+    "cash_flow", "income_statement", "balance_sheet",
+    "analyst_actions", "earnings",
 }
 MASSIVE_DATASETS = {
+    "prices", "options",
     "reference", "short_interest", "float", "short_volume", "news",
     "insider_transactions",
 }
 SNAPSHOT_DATASETS = {
     "reference", "float", "cash_flow", "income_statement", "balance_sheet",
-    "earnings", "analyst_actions", "options",
+    "earnings", "analyst_actions",
 }
 
 
@@ -72,9 +74,12 @@ def _symbol(ticker: str) -> str:
 
 def _window(start_date, end_date) -> tuple[date, date]:
     end = date.fromisoformat(end_date) if isinstance(end_date, str) else end_date
-    end = end if end is not None else datetime.now(timezone.utc).date()
+    if end is None:
+        end = datetime.now(timezone.utc).date() - timedelta(days=1)
+        while end.weekday() >= 5:
+            end -= timedelta(days=1)
     start = date.fromisoformat(start_date) if isinstance(start_date, str) else start_date
-    start = start if start is not None else end - timedelta(days=730)
+    start = start if start is not None else end
     if not isinstance(start, date) or not isinstance(end, date) or start > end:
         raise ValueError("start_date and end_date must be dates with start_date <= end_date")
     return start, end
@@ -128,27 +133,6 @@ def _insiders(ticker: str, start: date, end: date, api_key: str | None) -> list[
     return [row for row in rows if ticker in (row.get("tickers") or [])]
 
 
-def _options(stock: yf.Ticker) -> dict:
-    """Current chains bracketing 30/90 calendar days, never historical chains."""
-    available = sorted(stock.options)
-    selected = set()
-    today = datetime.now(timezone.utc).date()
-    for days in (30, 90):
-        target = (today + timedelta(days=days)).isoformat()
-        below = [expiry for expiry in available if expiry <= target]
-        above = [expiry for expiry in available if expiry >= target]
-        selected.update(below[-1:] + above[:1])
-    chains = {}
-    for expiry in sorted(selected):
-        # One request returns both sides; an expired/missing chain raises per-feed.
-        chain = stock.option_chain(expiry)
-        chains[expiry] = {
-            "calls": _records(chain.calls, "row"),
-            "puts": _records(chain.puts, "row"),
-        }
-    return {"available_expirations": available, "chains": chains}
-
-
 def collect_ticker(
     ticker: str,
     *,
@@ -158,13 +142,16 @@ def collect_ticker(
     api_key: str | None = None,
     checkpoint_path: str | Path | None = None,
     log_path: str | Path = DEFAULT_LOG_PATH,
+    option_settings: OptionSettings | None = None,
+    price_history: dict | None = None,
 ) -> dict[str, Any]:
     """Collect one ticker, isolating errors per feed.
 
-    Historical date bounds are inclusive, defaulting to the last 730 calendar
-    days. They apply to prices, short interest/volume, news and insider filings.
+    Historical date bounds are inclusive, defaulting to the preceding weekday.
+    They apply to prices, short interest/volume, news and insider filings.
     Other feeds are current snapshots, regardless of the requested date window.
-    The result contains source inputs, not calculated factors or a PIT backtest.
+    Option rows include calculated IV, realized volatility and their spread.
+    Other data remains source inputs, not a certified point-in-time backtest.
     ``api_key`` defaults to ``MASSIVE_API_KEY`` (or legacy ``POLYGON_IO``).
     With ``checkpoint_path``, restart using the same file to reuse completed
     feeds and retry failed/unfinished ones. Omitted dates reuse the saved window.
@@ -174,11 +161,15 @@ def collect_ticker(
     if checkpoint_path and Path(checkpoint_path).resolve() == Path(log_path).resolve():
         raise ValueError("Checkpoint and log must use different files")
     log = _logger(log_path)
+    selected = _datasets(datasets)
     try:
         with ExitStack() as stack:
             checkpoint = stack.enter_context(Checkpoints(checkpoint_path)) if checkpoint_path else None
             start, end = _checkpoint_window(start_date, end_date, checkpoint)
-            return _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log)
+            settings = (option_settings or OptionSettings()).validate()
+            if checkpoint and "options" in selected:
+                checkpoint.bind_options(settings.dictionary())
+            return _collect_ticker(ticker, start, end, selected, api_key, checkpoint, log, settings, price_history)
     except KeyboardInterrupt:
         log.warning("Collection interrupted; committed checkpoints retained")
         raise
@@ -187,22 +178,25 @@ def collect_ticker(
         raise
 
 
-def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log) -> dict[str, Any]:
+def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log, option_settings, price_history) -> dict[str, Any]:
     ticker = _symbol(ticker)
     selected = _datasets(datasets)
     # Wikipedia and Massive use BRK.B/BF.B; Yahoo uses BRK-B/BF-B.
     stock = yf.Ticker(ticker.replace(".", "-")) if set(selected) & YAHOO_DATASETS else None
     fetchers = {
-        "prices": lambda: _records(stock.history(
-            start=start.isoformat(), end=(end + timedelta(days=1)).isoformat(),
-            interval="1d", auto_adjust=False, actions=True, raise_errors=True,
-        ), "date"),
+        "prices": lambda: ([row for row in price_history["adjusted"] if start.isoformat() <= row["date"] <= end.isoformat()]
+                           if price_history is not None else market.stock_bars(ticker, start, end, api_key=api_key, checkpoint=checkpoint)),
         "cash_flow": lambda: _records(stock.get_cash_flow(freq="quarterly").T, "period_end"),
         "income_statement": lambda: _records(stock.get_income_stmt(freq="quarterly").T, "period_end"),
         "balance_sheet": lambda: _records(stock.get_balance_sheet(freq="quarterly").T, "period_end"),
         "analyst_actions": lambda: _records(stock.get_upgrades_downgrades(), "published_at"),
         "earnings": lambda: _records(stock.get_earnings_history(), "period_end"),
-        "options": lambda: _options(stock),
+        "options": lambda: collect_option_metrics(
+            ticker, start, end, settings=option_settings,
+            adjusted_prices=result["datasets"].get("prices", {}).get("data"),
+            raw_prices=price_history["raw"] if price_history else None,
+            warmup_prices=price_history["adjusted"] if price_history else None,
+            api_key=api_key, checkpoint=checkpoint, log=log),
         "reference": lambda: _reference(ticker, api_key),
         "short_interest": lambda: massive.fetch_short_interest(ticker, start, end, api_key=api_key),
         "short_volume": lambda: massive.fetch_short_volume(ticker, start, end, api_key=api_key),
@@ -211,7 +205,7 @@ def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log) -> d
         "insider_transactions": lambda: _insiders(ticker, start, end, api_key),
     }
     result = {
-        "ticker": ticker, "started_at": _now(),
+        "schema_version": 2, "ticker": ticker, "started_at": _now(),
         "history_window": {"start_date": start.isoformat(), "end_date": end.isoformat()},
         "datasets": {},
     }
@@ -230,8 +224,16 @@ def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log) -> d
         }
         try:
             data = fetchers[name]()
-            empty = not data or (name == "options" and not data["chains"])
-            entry.update(status="empty" if empty else "ok", data=data)
+            entry.update(status="empty" if not data else "ok", data=data)
+            if name == "prices":
+                entry["price_adjustment"] = "splits_only_not_dividends"
+            if name == "options":
+                entry.update(model="black_scholes_european", settings=option_settings.dictionary(),
+                             scope="latest_completed_session" if option_settings.history_days == 0 else "history_window")
+                unavailable = sum(row["status"] != "ok" for row in data)
+                if unavailable:
+                    entry["status"] = "partial" if unavailable < len(data) else "error"
+                    entry["error"] = {"type": "OptionDataUnavailable", "message": f"{unavailable} of {len(data)} option sessions unavailable; see dated rows"}
         except Exception as exc:
             # Unknown exceptions may contain credential-bearing URLs or payloads.
             # Only the Massive helper guarantees sanitized messages.
@@ -243,6 +245,8 @@ def _collect_ticker(ticker, start, end, datasets, api_key, checkpoint, log) -> d
         if entry["status"] == "error":
             log.error("UNAVAILABLE ticker=%s provider=%s feed=%s type=%s message=%s",
                       ticker, entry["provider"], name, entry["error"]["type"], entry["error"]["message"])
+        elif entry["status"] == "partial":
+            log.warning("PARTIAL ticker=%s provider=massive feed=options message=%s", ticker, entry["error"]["message"])
         elif entry["status"] == "empty":
             log.warning("EMPTY ticker=%s provider=%s feed=%s; provider returned no observations",
                         ticker, entry["provider"], name)
@@ -268,9 +272,29 @@ def iter_tickers(tickers: Iterable[str], **kwargs) -> Iterator[dict[str, Any]]:
         path = kwargs.get("checkpoint_path")
         checkpoint = stack.enter_context(Checkpoints(path)) if path else None
         start, end = _checkpoint_window(start_date, end_date, checkpoint)
-    selected = _datasets(kwargs.pop("datasets", None))
+        selected = _datasets(kwargs.pop("datasets", None))
+        settings = (kwargs.get("option_settings") or OptionSettings()).validate()
+        if checkpoint and "options" in selected:
+            checkpoint.bind_options(settings.dictionary())
+    price_mode = kwargs.pop("price_mode", "ticker")
+    cache_path = kwargs.pop("market_cache_path", None)
+    if price_mode not in ("ticker", "bulk"):
+        raise ValueError("price_mode must be ticker or bulk")
+    bulk = None
+    if price_mode == "bulk" and set(selected) & {"prices", "options"}:
+        settings = (kwargs.get("option_settings") or OptionSettings()).validate()
+        warmup = None
+        if "options" in selected:
+            first = start if settings.history_days == -1 else max(start, end - timedelta(days=settings.history_days))
+            warmup = first - timedelta(days=settings.rv_window * 3 + 10)
+        with ExitStack() as stack:
+            cache = stack.enter_context(Checkpoints(cache_path)) if cache_path else None
+            bulk = market.bulk_price_history(symbols, start, end, warmup_start=warmup,
+                                            api_key=kwargs.get("api_key"), cache=cache,
+                                            log=_logger(kwargs.get("log_path", DEFAULT_LOG_PATH)))
     for ticker in symbols:
-        yield collect_ticker(ticker, start_date=start, end_date=end, datasets=selected, **kwargs)
+        yield collect_ticker(ticker, start_date=start, end_date=end, datasets=selected,
+                             price_history=bulk[ticker] if bulk is not None else None, **kwargs)
 
 
 def collect_tickers(tickers: Iterable[str], **kwargs) -> dict[str, dict[str, Any]]:

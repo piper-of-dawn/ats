@@ -27,7 +27,8 @@ class Checkpoints:
                     payload BLOB NOT NULL, PRIMARY KEY (ticker, dataset)
                 )""")
                 origin = base_url()
-                for key, value in (("format_version", "1"), ("massive_origin", origin)):
+                self.connection.execute("CREATE TABLE IF NOT EXISTS responses (key TEXT PRIMARY KEY, payload BLOB NOT NULL)")
+                for key, value in (("format_version", "2"), ("massive_origin", origin)):
                     existing = self.connection.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
                     if existing and existing[0] != value:
                         raise ValueError("Checkpoint settings differ; choose a new checkpoint file")
@@ -57,6 +58,23 @@ class Checkpoints:
             (ticker, dataset),
         ).fetchone()
         return json.loads(zlib.decompress(row[0])) if row else None
+
+    def bind_options(self, settings: dict) -> None:
+        value = json.dumps(settings, sort_keys=True)
+        row = self.connection.execute("SELECT value FROM metadata WHERE key = 'option_settings'").fetchone()
+        if row and row[0] != value:
+            raise ValueError("Option settings differ; choose a new checkpoint file")
+        with self.connection:
+            self.connection.execute("INSERT OR IGNORE INTO metadata VALUES ('option_settings', ?)", (value,))
+
+    def response(self, key: str):
+        row = self.connection.execute("SELECT payload FROM responses WHERE key = ?", (key,)).fetchone()
+        return json.loads(zlib.decompress(row[0])) if row else None
+
+    def save_response(self, key: str, payload) -> None:
+        with self.connection:
+            self.connection.execute("INSERT OR REPLACE INTO responses VALUES (?, ?)",
+                                    (key, zlib.compress(json.dumps(payload, allow_nan=False).encode())))
 
     def save(self, ticker: str, dataset: str, entry: dict) -> None:
         payload = zlib.compress(json.dumps(entry, allow_nan=False).encode("utf-8"))
