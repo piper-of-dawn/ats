@@ -41,7 +41,7 @@ if args[0] == 'pull':
                STATE_DIR=str(tmp_path / "state"), RUN_ID="initial", DATASETS="reference,news",
                START_DATE="2026-10-01", END_DATE="2026-10-20",
                COLLECTION_IMAGE="piperofthedawn/ats:data-collection", COLLECTION_CONTAINER="test-collector")
-    for name in ("MASSIVE_API_KEY", "DOCKERHUB_TOKEN", "DOCKERHUB_USERNAME", "DOCKER_CONFIG"):
+    for name in ("MASSIVE_API_KEY", "THETADATA_API_KEY", "THETADATA_APIKEY", "DOCKERHUB_TOKEN", "DOCKERHUB_USERNAME", "DOCKER_CONFIG"):
         env.pop(name, None)
     return env, calls_file, tickers
 
@@ -138,4 +138,35 @@ def test_backfill_uses_separate_entrypoint_full_dates_and_shared_quota(tmp_path)
     assert argv[argv.index('--price-mode') + 1] == 'ticker'
     assert argv[argv.index('--risk-free-rate') + 1] == '0.035'
     assert 'MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite' in argv
+
+
+@pytest.mark.parametrize("iv_only", [True, False])
+def test_theta_job_builds_locally_and_runs_separate_worker_with_scoped_keys(tmp_path, iv_only):
+    env, calls_file, tickers = _environment(tmp_path)
+    (tmp_path/".theta-tickers.txt").write_text(tickers)
+    env.update(THETADATA_API_KEY="theta-runtime-secret", IV_ONLY=str(iv_only).lower(),
+               OPTION_TARGET_DAYS="30", STRIKE_RANGE="2", RV_WINDOW="21",
+               RISK_FREE_RATE="0.04", DIVIDEND_YIELD="0.0")
+    if not iv_only:
+        env["MASSIVE_API_KEY"] = "massive-runtime-secret"
+    scripts = _scripts("Jenkinsfile.theta")
+    assert len(scripts) == 4
+    for script in scripts:
+        subprocess.run(["/bin/sh", "-n"], input=script, text=True, check=True)
+        result = subprocess.run(["/bin/sh"], input=script, text=True, cwd=tmp_path,
+                                env=env, capture_output=True, check=True)
+        assert "theta-runtime-secret" not in result.stdout+result.stderr
+        assert "massive-runtime-secret" not in result.stdout+result.stderr
+    calls = [json.loads(line)["argv"] for line in calls_file.read_text().splitlines()]
+    assert [call[0] for call in calls].count("build") == 2
+    assert not {"pull", "push", "login"} & {call[0] for call in calls}
+    argv = next(call for call in calls if call[0] == "run")
+    assert "THETADATA_API_KEY" in argv
+    assert "THETADATA_RATE_STATE=/data/cache/theta-rate.sqlite" in argv
+    assert "MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite" in argv
+    assert argv[argv.index("--output")+1] == "/data/runs/initial/options.jsonl"
+    assert ("--iv-only" in argv) is iv_only
+    assert argv[argv.index("--start")+1] == "2026-10-01"
+    assert argv[argv.index("--end")+1] == "2026-10-20"
+    assert "runtime-secret" not in calls_file.read_text()
     assert '--datasets' not in argv  # Backfill CLI supplies only prices/options.

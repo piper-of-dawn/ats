@@ -11,8 +11,9 @@ from .massive import base_url
 class Checkpoints:
     """A local SQLite file; each saved feed is committed independently."""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, provider="massive"):
         self.path = Path(path)
+        self.provider = provider
         self.connection = None
 
     def __enter__(self):
@@ -26,9 +27,16 @@ class Checkpoints:
                     ticker TEXT NOT NULL, dataset TEXT NOT NULL, status TEXT NOT NULL,
                     payload BLOB NOT NULL, PRIMARY KEY (ticker, dataset)
                 )""")
-                origin = base_url()
                 self.connection.execute("CREATE TABLE IF NOT EXISTS responses (key TEXT PRIMARY KEY, payload BLOB NOT NULL)")
-                for key, value in (("format_version", "2"), ("massive_origin", origin)):
+                # Older checkpoints without an explicit provider belong to Massive.
+                prior = self.connection.execute("SELECT value FROM metadata WHERE key = 'provider'").fetchone()
+                legacy = self.connection.execute("SELECT value FROM metadata WHERE key = 'massive_origin'").fetchone()
+                if (prior and prior[0] != self.provider) or (not prior and legacy and self.provider != "massive"):
+                    raise ValueError("Checkpoint provider differs; choose a new checkpoint file")
+                metadata = [("format_version", "2"), ("provider", self.provider)]
+                if self.provider == "massive":
+                    metadata.append(("massive_origin", base_url()))
+                for key, value in metadata:
                     existing = self.connection.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
                     if existing and existing[0] != value:
                         raise ValueError("Checkpoint settings differ; choose a new checkpoint file")
@@ -66,6 +74,15 @@ class Checkpoints:
             raise ValueError("Option settings differ; choose a new checkpoint file")
         with self.connection:
             self.connection.execute("INSERT OR IGNORE INTO metadata VALUES ('option_settings', ?)", (value,))
+
+    def bind_run(self, settings: dict) -> None:
+        """Bind provider, universe, price basis and model before exporting a run."""
+        value = json.dumps(settings, sort_keys=True)
+        row = self.connection.execute("SELECT value FROM metadata WHERE key = 'run_settings'").fetchone()
+        if row and row[0] != value:
+            raise ValueError("Run settings differ; choose a new checkpoint file")
+        with self.connection:
+            self.connection.execute("INSERT OR IGNORE INTO metadata VALUES ('run_settings', ?)", (value,))
 
     def response(self, key: str):
         row = self.connection.execute("SELECT payload FROM responses WHERE key = ?", (key,)).fetchone()

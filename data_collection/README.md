@@ -12,6 +12,130 @@ uv run collect-stocks --help
 uv run backfill-options --help
 ```
 
+## Separate ThetaData options pipeline
+
+`collect-theta-options` is an independent worker. The existing Massive/Yahoo
+collector and `backfill-options` keep their existing providers and entrypoints.
+Install the optional official SDK only for this worker:
+
+```sh
+cd data_collection
+uv sync --frozen --extra theta
+# Source/export keys in your shell first; never pass literal secrets as arguments.
+# Accepted Theta variables: THETADATA_API_KEY or existing THETADATA_APIKEY.
+# MASSIVE_API_KEY or POLYGON_IO supplies adjusted prices for RV/premium.
+export THETADATA_RATE_STATE="$PWD/output/cache/theta-rate.sqlite"
+export MASSIVE_RATE_STATE="$PWD/output/cache/massive-rate.sqlite"
+
+uv run --frozen --extra theta collect-theta-options --tickers-file universe.txt \
+  --start 2025-10-21 --end 2026-10-20 \
+  --output output/theta-year/options.jsonl --log-to-stderr
+
+# One-session update: same command, equal start/end dates and a new output.
+uv run --frozen --extra theta collect-theta-options AAPL \
+  --start 2026-10-20 --end 2026-10-20 \
+  --output output/theta-daily-2026-10-20/options.jsonl
+
+# ThetaData alone: omit RV, IV-minus-RV and variance spread.
+uv run --frozen --extra theta collect-theta-options AAPL --iv-only \
+  --start 2026-10-20 --end 2026-10-20 \
+  --output output/theta-iv-only/options.jsonl
+```
+
+Both dates are required, inclusive, and the end date must be before today in
+New York. Free history entitlement still applies; an unavailable date is never
+filled using a newer snapshot. Use a different output/checkpoint for another
+window, ticker universe, IV-only mode or model. Use a `.env` with `--env-file`
+(shell `keys.sh` must be sourced by the caller), or mounted secret files through
+`--api-key-file` and `--massive-api-key-file`. The SDK connects directly; no
+Java/Theta Terminal service is needed.
+
+The worker retrieves Theta stock and options EOD in calendar-month chunks.
+Options requests use `expiration='*'`, `max_dte=target_days+45` and an ATM
+`strike_range` of 2, configurable with `--strike-range`. It retains all complete
+raw responses compressed in its SQLite checkpoint, processes one ticker/month
+at a time, and streams a **daily panel: one JSON line per ticker/session**.
+It does not load all 500 tickers or the entire JSONL into memory. API failures
+leave a missing chunk and a logged error; no successful-looking data is invented.
+
+Each row contains `ticker`, `date`, `status`, `reason`, actual expiry/tenor,
+strike, raw underlying price, call/put bids, asks, midpoint prices and volumes,
+report/last-trade timestamps, call/put/mean IV, RV, `implied_risk_premium`,
+`variance_spread`, retrieval timestamp, providers, price basis, and model inputs.
+Daily sessions come from the union of returned stock/options dates and adjusted
+price dates. Sessions absent from all sources cannot be inferred automatically.
+
+Selection uses the earliest expiry at least `--option-target-days` ahead
+(default 30), within another 45 days, and the nearest strike with a valid
+call/put pair. Both same-report quotes must have `0 < bid <= ask`; zero trade
+volume is acceptable. Missing/crossed quotes and invalid IVs produce nulls and
+a logged reason. No prior session's quote is carried forward. The shared
+NumPy/SciPy Black-Scholes solver computes IVs in batches. All rates and
+volatilities are decimal values.
+
+By default, **only options and nominal spot come from ThetaData**. One Massive
+split-adjusted stock history per ticker, including RV warmup, supplies returns
+for `std(last 21 log returns, ddof=1)*sqrt(252)`. This avoids treating a stock
+split as volatility. The worker caches that history separately within its
+provider-specific checkpoint. It never requests Massive option contracts/bars
+or vendor-paid Greeks. `--iv-only` makes no Massive requests and leaves RV and
+premiums null with `premium_status='not_requested'`.
+
+The IV is the mean of call/put European Black-Scholes estimates; rates default
+to .04 and dividend yield to 0. These are explicit constant assumptions. The
+method is an approximation for American options, uses EOD reports rather than
+guaranteed synchronized closing quotes, and does not interpolate constant
+30-day variance. EOD does not supply contract deliverables: visibly different
+option roots are excluded, but `contract_deliverable_verified=false` records
+that ordinary 100-share deliverables have not been independently certified.
+
+**If retrieval breaks, rerunning the same command resumes from the last
+completed checkpoint.** Successful monthly raw responses and metric chunks
+commit independently. Deadlines retry up to three times; repeatedly timed-out
+windows split into smaller ranges down to a single day, retaining completed
+subranges. Partial streamed responses are never cached. Transient gRPC failures
+retry, quota failures cool down for 60 seconds, and expired sessions
+reauthenticate. Permission failures fail promptly. Theta request starts are
+paced at least 3.2 seconds apart; a shared `THETADATA_RATE_STATE` also serializes
+in-flight requests across cooperating Linux containers on the same host.
+The Massive request limiter remains separate and shared with existing jobs.
+
+SQLite is authoritative; restart rebuilds JSONL to remove torn lines and
+duplicates. Provider/model/universe mismatches and a second writer to the same
+output/checkpoint are rejected. Completed empty/unavailable chunks stay
+checkpoints; use a new run to refresh them. Logs rotate at 5 MiB, three backups;
+SDK authentication logs are disabled so session tokens do not enter the log.
+Exit status: 0 completed without unavailable rows, 1 errors/unavailable metrics,
+130 interrupted. Per-chunk errors continue to the remaining tickers/months;
+disk/state failures stop collection.
+
+```sh
+docker build -f Dockerfile.theta --target test -t ats-theta-options:test .
+docker build -f Dockerfile.theta --target runtime -t ats-theta-options:latest .
+# Export THETADATA_API_KEY first (or map your THETADATA_APIKEY to that name).
+# Create a writable host state directory containing universe.txt first.
+docker run --rm --init --stop-timeout 30 --user "$(id -u):$(id -g)" \
+  --env THETADATA_API_KEY --env MASSIVE_API_KEY --env POLYGON_IO \
+  --env THETADATA_RATE_STATE=/data/cache/theta-rate.sqlite \
+  --env MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite \
+  --mount "type=bind,src=$PWD/state,dst=/data" \
+  ats-theta-options:latest --tickers-file /data/universe.txt \
+  --start 2025-10-21 --end 2026-10-20 --output /data/runs/theta-year/options.jsonl
+```
+
+Use `data_collection/Jenkinsfile.theta` for a **separate manual
+Pipeline-from-SCM job**. It checks out SCM, tests/builds the dedicated image
+locally, then calls `docker run`; no registry publication is needed. Add a
+Secret text credential `thetadata-api-key`. The existing `massive-api-key` is
+needed only when `IV_ONLY=false`. Set `TICKERS`, both dates, and a stable
+`RUN_ID`; data and logs persist under `STATE_DIR/runs/RUN_ID`, default host state
+`/home/karma/data-collection`. No full-universe run is started automatically.
+
+Provider references: [Python SDK](https://thetadata.net/docs/Python-Library/Getting-Started.html),
+[option EOD](https://thetadata.net/docs/operations_python/option_history_eod.html),
+[stock EOD](https://thetadata.net/docs/operations/stock_history_eod.html), and
+[v3 corporate-action limitations](https://thetadata.net/docs/Articles/Getting-Started/v2-migration-guide.html).
+
 ## Sources and output
 
 | Dataset | Provider | Data |

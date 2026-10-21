@@ -11,7 +11,7 @@ RUN uv sync --frozen --no-dev --no-editable
 # Release validation target; test dependencies never enter the runtime.
 FROM build AS test
 COPY tests ./tests
-COPY Dockerfile Jenkinsfile Jenkinsfile.backfill ./
+COPY Dockerfile Jenkinsfile Jenkinsfile.backfill Jenkinsfile.theta ./
 RUN uv sync --frozen --no-editable \
     && uv run --frozen pytest -q
 

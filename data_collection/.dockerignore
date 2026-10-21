@@ -3,8 +3,10 @@
 !uv.lock
 !README.md
 !Dockerfile
+!Dockerfile.theta
 !Jenkinsfile
 !Jenkinsfile.backfill
+!Jenkinsfile.theta
 !src/
 !src/data_collection/
 !src/data_collection/*.py

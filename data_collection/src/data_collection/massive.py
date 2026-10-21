@@ -32,14 +32,15 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 class _RequestLimiter:
-    def __init__(self, interval=13.0, clock=None, sleep=None):
+    def __init__(self, interval=13.0, clock=None, sleep=None, *, state_env="MASSIVE_RATE_STATE"):
         self.interval = interval
+        self.state_env = state_env
         self.clock = clock or time.monotonic
         self.sleep = sleep or time.sleep
         self.last_start = None
 
     def wait(self):
-        state = os.environ.get("MASSIVE_RATE_STATE")
+        state = os.environ.get(self.state_env)
         if state:
             # Share request starts between the normal and backfill containers.
             # Reserve a slot atomically, then release SQLite before sleeping.

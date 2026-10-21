@@ -1,0 +1,127 @@
+// Separate manual Pipeline-from-SCM job. Build locally and run with durable state.
+pipeline {
+    agent any
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 14, unit: 'DAYS')
+    }
+    parameters {
+        string(name: 'IMAGE_REF', defaultValue: 'ats-theta-options:latest', description: 'Local image built from this checkout; no registry required.')
+        string(name: 'THETA_CREDENTIAL_ID', defaultValue: 'thetadata-api-key', description: 'Jenkins Secret text credential holding the ThetaData API key.')
+        string(name: 'MASSIVE_CREDENTIAL_ID', defaultValue: 'massive-api-key', description: 'Used for split-adjusted RV prices unless IV_ONLY is enabled.')
+        booleanParam(name: 'IV_ONLY', defaultValue: false, description: 'ThetaData only: omit realized volatility and risk premium.')
+        string(name: 'STATE_DIR', defaultValue: '/home/karma/data-collection', description: 'Persistent Docker-host directory writable by Jenkins.')
+        string(name: 'RUN_ID', defaultValue: 'theta-options-v1', description: 'Reuse to resume the same dates, universe and model; new ID for a new run.')
+        text(name: 'TICKERS', defaultValue: params.TICKERS ?: 'AAPL\nMSFT', description: 'Tickers separated by newlines, commas or spaces.')
+        string(name: 'START_DATE', defaultValue: '', description: 'Required inclusive YYYY-MM-DD. Set both dates to one session for a daily update.')
+        string(name: 'END_DATE', defaultValue: '', description: 'Required inclusive YYYY-MM-DD, before today in New York.')
+        string(name: 'OPTION_TARGET_DAYS', defaultValue: '30', description: 'Minimum tenor; maximum is this value plus 45 calendar days.')
+        string(name: 'STRIKE_RANGE', defaultValue: '2', description: 'ATM strikes requested on either side; increase for thin chains.')
+        string(name: 'RV_WINDOW', defaultValue: '21', description: 'Trailing daily returns for realized volatility.')
+        string(name: 'RISK_FREE_RATE', defaultValue: '0.04', description: 'Annual continuous rate, decimal; explicit constant assumption.')
+        string(name: 'DIVIDEND_YIELD', defaultValue: '0.0', description: 'Annual continuous yield, decimal; explicit constant assumption.')
+    }
+    stages {
+        stage('Prepare') {
+            steps {
+                checkout scm
+                script {
+                    if (!(params.RUN_ID ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/)) {
+                        error('RUN_ID must contain 1-64 letters, digits, dots, underscores or hyphens.')
+                    }
+                    if (!params.START_DATE.trim() || !params.END_DATE.trim() || !params.TICKERS.trim()) {
+                        error('START_DATE, END_DATE and TICKERS are required.')
+                    }
+                    if (!params.IMAGE_REF.trim() || params.IMAGE_REF.trim().startsWith('-')) {
+                        error('IMAGE_REF must be a local Docker image name.')
+                    }
+                    env.STATE_DIR = params.STATE_DIR
+                    env.RUN_ID = params.RUN_ID
+                    env.COLLECTION_IMAGE = params.IMAGE_REF.trim()
+                    env.COLLECTION_CONTAINER = "theta-${env.JOB_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')}-${env.BUILD_NUMBER}"
+                    env.START_DATE = params.START_DATE.trim()
+                    env.END_DATE = params.END_DATE.trim()
+                    env.IV_ONLY = params.IV_ONLY.toString()
+                    env.OPTION_TARGET_DAYS = params.OPTION_TARGET_DAYS
+                    env.STRIKE_RANGE = params.STRIKE_RANGE
+                    env.RV_WINDOW = params.RV_WINDOW
+                    env.RISK_FREE_RATE = params.RISK_FREE_RATE
+                    env.DIVIDEND_YIELD = params.DIVIDEND_YIELD
+                    writeFile(file: '.theta-tickers.txt', text: params.TICKERS)
+                }
+                sh '''#!/bin/sh
+set -eu
+docker info >/dev/null
+case "$STATE_DIR" in /*) ;; *) echo 'STATE_DIR must be absolute.' >&2; exit 1 ;; esac
+mkdir -p "$STATE_DIR/runs/$RUN_ID" "$STATE_DIR/cache"
+if [ -f "$STATE_DIR/runs/$RUN_ID/tickers.txt" ]; then
+    cmp .theta-tickers.txt "$STATE_DIR/runs/$RUN_ID/tickers.txt" || {
+        echo 'Ticker selection changed: choose a new RUN_ID.' >&2
+        exit 1
+    }
+else
+    cp .theta-tickers.txt "$STATE_DIR/runs/$RUN_ID/tickers.txt"
+fi
+'''
+            }
+        }
+        stage('Test and Build') {
+            steps {
+                sh '''#!/bin/sh
+set -eu
+docker build -f data_collection/Dockerfile.theta --target test -t ats-theta-options:test data_collection
+docker build -f data_collection/Dockerfile.theta --target runtime -t "$COLLECTION_IMAGE" data_collection
+'''
+            }
+        }
+        stage('Collect Theta Options') {
+            steps {
+                script {
+                    def credentials = [string(credentialsId: params.THETA_CREDENTIAL_ID, variable: 'THETADATA_API_KEY')]
+                    if (!params.IV_ONLY) {
+                        credentials.add(string(credentialsId: params.MASSIVE_CREDENTIAL_ID, variable: 'MASSIVE_API_KEY'))
+                    }
+                    withCredentials(credentials) {
+                        sh '''#!/bin/sh
+set +x
+set -eu
+set -- --tickers-file "/data/runs/$RUN_ID/tickers.txt" \
+    --start "$START_DATE" --end "$END_DATE" \
+    --output "/data/runs/$RUN_ID/options.jsonl" \
+    --log-file "/data/runs/$RUN_ID/theta.log" --log-to-stderr \
+    --option-target-days "$OPTION_TARGET_DAYS" --strike-range "$STRIKE_RANGE" \
+    --rv-window "$RV_WINDOW" --risk-free-rate "$RISK_FREE_RATE" --dividend-yield "$DIVIDEND_YIELD"
+if [ "$IV_ONLY" = true ]; then set -- "$@" --iv-only; fi
+trap 'docker stop --time 30 "$COLLECTION_CONTAINER" >/dev/null 2>&1 || true' EXIT
+docker run --pull=never --rm --init --stop-timeout 30 \
+    --name "$COLLECTION_CONTAINER" --user "$(id -u):$(id -g)" \
+    --env THETADATA_API_KEY --env MASSIVE_API_KEY \
+    --env THETADATA_RATE_STATE=/data/cache/theta-rate.sqlite \
+    --env MASSIVE_RATE_STATE=/data/cache/massive-rate.sqlite \
+    --mount "type=bind,src=$STATE_DIR,dst=/data" \
+    "$COLLECTION_IMAGE" "$@"
+'''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            sh(returnStatus: true, script: '''#!/bin/sh
+set +x
+if [ -n "${COLLECTION_CONTAINER:-}" ]; then
+    docker stop --time 30 "$COLLECTION_CONTAINER" >/dev/null 2>&1 || true
+fi
+''')
+        }
+        success {
+            echo "Theta options complete: ${params.STATE_DIR}/runs/${env.RUN_ID}/options.jsonl"
+        }
+        unsuccessful {
+            echo "Check theta.log. Rerun the same RUN_ID/dates/model to resume committed chunks."
+        }
+    }
+}
